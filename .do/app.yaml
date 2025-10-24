@@ -1,0 +1,52 @@
+name: sisqr6
+region: nyc
+
+services:
+  - name: backend
+    github:
+      repo: vanderhuana/sisqr
+      branch: master
+      deploy_on_push: true
+    source_dir: /backend
+    dockerfile_path: Dockerfile
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /api
+    envs:
+      - key: NODE_ENV
+        value: production
+        scope: RUN_TIME
+      - key: PORT
+        value: "3000"
+        scope: RUN_TIME
+      # DATABASE_URL y JWT_SECRET se configuran en DigitalOcean UI
+      # No incluir credenciales en el repositorio por seguridad
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 30
+      period_seconds: 30
+      timeout_seconds: 10
+      success_threshold: 1
+      failure_threshold: 3
+
+  - name: frontend
+    github:
+      repo: vanderhuana/sisqr
+      branch: master
+      deploy_on_push: true
+    source_dir: /frontend
+    dockerfile_path: Dockerfile
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    health_check:
+      http_path: /
+      initial_delay_seconds: 10
+      period_seconds: 30
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
