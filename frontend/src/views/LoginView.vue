@@ -126,52 +126,6 @@
 
                 </v-form>
 
-                <!-- Información de usuarios de prueba -->
-                <v-divider class="my-6"></v-divider>
-                
-                <div class="text-center">
-                  <p class="text-caption mb-3" style="color: #666">
-                    <v-icon size="16" class="mr-1">mdi-information</v-icon>
-                    Usuarios de prueba disponibles:
-                  </p>
-                  
-                  <v-row>
-                    <v-col cols="4">
-                      <v-card
-                        variant="tonal"
-                        color="error"
-                        class="pa-2 cursor-pointer"
-                        @click="fillCredentials('admin')"
-                      >
-                        <div class="text-caption font-weight-bold">ADMIN</div>
-                        <div class="text-caption">admin123</div>
-                      </v-card>
-                    </v-col>
-                    <v-col cols="4">
-                      <v-card
-                        variant="tonal"
-                        color="warning"
-                        class="pa-2 cursor-pointer"
-                        @click="fillCredentials('vendedor')"
-                      >
-                        <div class="text-caption font-weight-bold">VENDEDOR</div>
-                        <div class="text-caption">vendedor123</div>
-                      </v-card>
-                    </v-col>
-                    <v-col cols="4">
-                      <v-card
-                        variant="tonal"
-                        color="success"
-                        class="pa-2 cursor-pointer"
-                        @click="fillCredentials('control')"
-                      >
-                        <div class="text-caption font-weight-bold">CONTROL</div>
-                        <div class="text-caption">control123</div>
-                      </v-card>
-                    </v-col>
-                  </v-row>
-                </div>
-
               </v-card-text>
             </v-card>
 
@@ -248,17 +202,7 @@ const validateForm = () => {
   return isValid
 }
 
-const fillCredentials = (type) => {
-  const users = {
-    admin: { login: 'admin@sisqr6.com', password: 'admin123' },
-    vendedor: { login: 'vendedor@sisqr6.com', password: 'vendedor123' },
-    control: { login: 'control@sisqr6.com', password: 'control123' }
-  }
-  
-  credentials.value = { ...users[type] }
-  clearError('login')
-  clearError('password')
-}
+
 
 const handleLogin = async () => {
   if (!validateForm()) return

@@ -20,8 +20,8 @@ export const staffService = {
 import axios from 'axios'
 
 // Configuración base de axios
-// Usar rutas relativas ya que Vite proxy se encargará del routing
-const API_BASE_URL = '' 
+// En desarrollo usa proxy de Vite, en producción usa VITE_API_URL o ruta relativa
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,

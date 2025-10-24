@@ -101,22 +101,6 @@
           </button>
         </div>
 
-        <!-- STAFF / PERSONAL removed -->
-        <button 
-          @click="seccionActiva = 'escanear'" 
-          :class="{ active: seccionActiva === 'escanear' }"
-          class="nav-item"
-        >
-          ESCANEAR
-        </button>
-        <button 
-          @click="seccionActiva = 'filtrar'" 
-          :class="{ active: seccionActiva === 'filtrar' }"
-          class="nav-item"
-        >
-          FILTRAR VISITANTE
-        </button>
-
         <!-- MENÚ LISTA -->
         <div class="nav-seccion">
           <div class="nav-seccion-titulo">LISTA</div>
@@ -154,8 +138,6 @@
         <h1 v-else-if="seccionActiva === 'vender'">VENDER ENTRADA</h1>
         <h1 v-else-if="seccionActiva === 'generar-qr'">GENERADOR DE ENTRADAS QR</h1>
         <h1 v-else-if="seccionActiva === 'scanner'">ESCÁNER QR</h1>
-        <h1 v-else-if="seccionActiva === 'escanear'">ESCÁNER QR</h1>
-        <h1 v-else-if="seccionActiva === 'filtrar'">FILTRAR VISITANTES</h1>
         <h1 v-else-if="seccionActiva === 'trabajadores'">LISTA DE TRABAJADORES</h1>
         <h1 v-else-if="seccionActiva === 'participantes'">LISTA DE PARTICIPANTES</h1>
         <h1 v-else>PANEL ADMINISTRADOR</h1>
@@ -656,16 +638,6 @@
             </div>
           </div>
           
-        </div>
-      </section>
-      
-      <!-- SECCIÓN FILTRAR -->
-      <section v-else-if="seccionActiva === 'filtrar'" class="seccion-contenido">
-        <div class="contenido-card">
-          <div class="filtros-container">
-            <h3>🔽 Filtrar Visitantes</h3>
-            <p>Funcionalidad de filtros próximamente</p>
-          </div>
         </div>
       </section>
 

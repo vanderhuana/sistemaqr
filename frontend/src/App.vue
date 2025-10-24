@@ -113,22 +113,6 @@
             {{ cargando ? 'Iniciando sesión...' : 'Iniciar sesión' }}
           </button>
 
-          <!-- SECCIÓN DE USUARIOS DE PRUEBA -->
-          <div class="seccion-pruebas">
-            <p><strong>Usuarios de prueba disponibles:</strong></p>
-            <div class="botones-roles">
-              <button @click="seleccionarUsuario('admin')" class="btn-rol admin">
-                ADMIN
-              </button>
-              <button @click="seleccionarUsuario('vendedor')" class="btn-rol vendedor">
-                VENDEDOR
-              </button>
-              <button @click="seleccionarUsuario('control')" class="btn-rol control">
-                CONTROL
-              </button>
-            </div>
-          </div>
-
           <!-- MENSAJES DE ESTADO -->
           <div v-if="mensaje" :class="['alerta', mensaje.tipo]">
             {{ mensaje.texto }}
@@ -205,13 +189,6 @@ const esRutaPublica = computed(() => {
   return rutasPublicas.includes(route.path)
 })
 
-// Usuarios de prueba
-const usuariosPrueba = {
-  admin: { email: 'admin@sisqr6.com', password: 'admin123' },
-  vendedor: { email: 'vendedor@sisqr6.com', password: 'vendedor123' },
-  control: { email: 'control@sisqr6.com', password: 'control123' }
-}
-
 // Verificar si ya hay un usuario logueado al cargar la aplicación
 onMounted(() => {
   const user = authService.getCurrentUser()
@@ -220,16 +197,6 @@ onMounted(() => {
     console.log('Usuario ya autenticado:', user)
   }
 })
-
-// Métodos
-const seleccionarUsuario = (tipo) => {
-  credenciales.value.email = usuariosPrueba[tipo].email
-  credenciales.value.password = usuariosPrueba[tipo].password
-  mensaje.value = {
-    tipo: 'info',
-    texto: `Credenciales ${tipo.toUpperCase()} cargadas. Presiona "Iniciar sesión"`
-  }
-}
 
 const iniciarSesion = async () => {
   cargando.value = true
@@ -806,57 +773,6 @@ export default {
 .btn-iniciar-sesion:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-}
-
-.seccion-pruebas {
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 1px solid #eee;
-  text-align: center;
-}
-
-.seccion-pruebas p {
-  margin-bottom: 15px;
-  color: #666;
-  font-weight: 500;
-}
-
-.botones-roles {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-rol {
-  flex: 1;
-  padding: 10px 8px;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.btn-rol:hover {
-  transform: scale(1.05);
-}
-
-.btn-rol.admin {
-  background: #ffebee;
-  color: #d32f2f;
-  border: 2px solid #ffcdd2;
-}
-
-.btn-rol.vendedor {
-  background: #fff3e0;
-  color: #f57c00;
-  border: 2px solid #ffe0b2;
-}
-
-.btn-rol.control {
-  background: #e8f5e8;
-  color: #388e3c;
-  border: 2px solid #c8e6c9;
 }
 
 .alerta {
