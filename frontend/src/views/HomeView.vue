@@ -152,9 +152,6 @@
               <p class="copyright">Todos los derechos reservados</p>
               <div class="developers">
                 <p class="developers-title">Desarrollado por:</p>
-                <p class="developers-names">
-                  MAURICIO HUANACIO 
-                </p>
               </div>
             </div>
           </v-col>
