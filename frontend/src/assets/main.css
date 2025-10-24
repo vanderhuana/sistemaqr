@@ -1,0 +1,270 @@
+/* Estilos base FEIPOBOL 2025 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+}
+
+#app {
+  height: 100vh;
+  width: 100%;
+}
+
+/* Colores FEIPOBOL */
+:root {
+  --feipobol-green: #6B9080;
+  --feipobol-orange: #FF6B35;
+  --feipobol-yellow: #FFD700;
+  --feipobol-red: #FF4444;
+  --feipobol-mountain: #FF9500;
+  --feipobol-gray: #F5F5F5;
+}
+
+/* Header FEIPOBOL */
+.feipobol-header {
+  background: var(--feipobol-green);
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.feipobol-logo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.feipobol-logo img {
+  height: 60px;
+}
+
+.feipobol-title {
+  color: white;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.feipobol-subtitle {
+  color: rgba(255,255,255,0.9);
+  font-size: 0.9rem;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+/* Botón INGRESAR */
+.btn-ingresar {
+  background: var(--feipobol-orange) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 1.1rem !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  box-shadow: 0 4px 12px rgba(255,107,53,0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-ingresar:hover {
+  background: #E55A2B !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255,107,53,0.4) !important;
+}
+
+/* Contenido principal */
+.main-content {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--feipobol-gray);
+}
+
+/* Diseño de montañas/paisaje */
+.feipobol-mountains {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 600px;
+  height: 400px;
+  opacity: 0.9;
+}
+
+.mountain-shape {
+  position: absolute;
+  background: linear-gradient(45deg, var(--feipobol-red), var(--feipobol-orange), var(--feipobol-yellow));
+  clip-path: polygon(0% 100%, 30% 20%, 60% 40%, 100% 0%, 100% 100%);
+  border-radius: 20px;
+}
+
+/* Secciones del contenido */
+.content-section {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  max-width: 600px;
+  width: 100%;
+  margin: 2rem;
+}
+
+.section-title {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--feipobol-green);
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 2rem;
+  font-weight: 400;
+}
+
+/* Formularios */
+.form-container {
+  width: 100%;
+}
+
+.form-field {
+  margin-bottom: 1.5rem;
+}
+
+.form-field .v-field {
+  border-radius: 12px;
+}
+
+.form-field .v-field--focused {
+  border-color: var(--feipobol-green);
+}
+
+/* Cards */
+.feipobol-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  padding: 2rem;
+  margin: 1rem 0;
+  border: 1px solid rgba(107,144,128,0.1);
+}
+
+/* QR Scanner */
+.qr-scanner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.qr-camera-frame {
+  width: 350px;
+  height: 350px;
+  border: 4px solid var(--feipobol-green);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.qr-camera-corners {
+  position: absolute;
+  inset: 20px;
+  border: 2px solid var(--feipobol-orange);
+  border-radius: 12px;
+}
+
+.qr-camera-corners::before,
+.qr-camera-corners::after {
+  content: '';
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--feipobol-orange);
+}
+
+.qr-camera-corners::before {
+  top: -3px;
+  left: -3px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.qr-camera-corners::after {
+  bottom: -3px;
+  right: -3px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .feipobol-header {
+    padding: 0 1rem;
+    height: 70px;
+  }
+  
+  .feipobol-title {
+    font-size: 1.5rem;
+  }
+  
+  .section-title {
+    font-size: 2.5rem;
+  }
+  
+  .content-section {
+    margin: 1rem;
+    padding: 2rem;
+  }
+  
+  .feipobol-mountains {
+    width: 300px;
+    height: 200px;
+  }
+  
+  .qr-camera-frame {
+    width: 280px;
+    height: 280px;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
