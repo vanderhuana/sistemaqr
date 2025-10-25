@@ -143,23 +143,6 @@
         @cerrar-sesion="cerrarSesion"
       />
     </div> <!-- Fin vista-dashboard -->
-
-    <!-- FOOTER - Solo visible en página principal (no en dashboards) -->
-    <footer v-if="!usuarioActual" class="feipobol-footer">
-      <div class="footer-content">
-        <p class="copyright">
-          © {{ new Date().getFullYear() }} FEIPOBOL - BICENTENARIO DE BOLIVIA
-        </p>
-        <p class="copyright">Todos los derechos reservados</p>
-        <div class="developers">
-          <p class="developers-title">Desarrollado por:</p>
-          <p class="developers-names">
-            MAURICIO HUANACIO | SAMUEL ROMAN | ROBERTO ESTRADA | WALTER AVEDAÑO
-          </p>
-        </div>
-      </div>
-    </footer>
-
   </div>
 </template>
 
