@@ -23,8 +23,12 @@ app.use(cors({
   origin: function (origin, callback) {
     // Permitir peticiones sin origin (como apps móviles o Postman)
     if (!origin) return callback(null, true);
-    
-    // Lista de orígenes permitidos
+
+    // Normalizar origin quitando slash final si existe
+    const normalize = (u) => (typeof u === 'string' ? u.replace(/\/+$/,'') : u);
+    const incoming = normalize(origin);
+
+    // Lista de orígenes permitidos por defecto (sin slash final)
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:8080',
@@ -33,19 +37,27 @@ app.use(cors({
       'http://192.168.1.3:3000',
       'https://localhost:5173',
       'https://192.168.1.3:5173',
-      'https://192.168.1.3:3443',
+      'https://192.168.1.3:3443'
     ];
-    
+
+    // Si se definió FRONTEND_URL en env, añádelo (normalizado)
+    if (process.env.FRONTEND_URL) {
+      allowedOrigins.push(normalize(process.env.FRONTEND_URL));
+    }
+
     // Permitir cualquier origen en desarrollo
     if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+
+    if (allowedOrigins.indexOf(incoming) !== -1) {
+      return callback(null, true);
     }
+
+    // Si no está en la lista, rechazar con mensaje claro
+    const err = new Error('Not allowed by CORS');
+    err.status = 403;
+    return callback(err);
   },
   credentials: true
 }));
