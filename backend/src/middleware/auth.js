@@ -1,6 +1,19 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
+// Validar que exista la variable de entorno JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  // En desarrollo podemos permitir un valor por defecto para facilitar testing,
+  // pero en producción debemos advertir claramente en los logs.
+  if (process.env.NODE_ENV === 'production') {
+    console.error('CRITICAL: JWT_SECRET no está configurado en el entorno. Esto causará errores al generar/verificar tokens.');
+  } else {
+    console.warn('JWT_SECRET no definido - usando secreto temporal para desarrollo. No usar en producción.');
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_not_for_prod';
+  }
+}
+
 // Middleware para verificar token JWT
 const authenticateToken = async (req, res, next) => {
   try {
@@ -97,6 +110,7 @@ const generateToken = (user) => {
     role: user.role
   };
   
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET no configurado');
   return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '24h'
   });
@@ -109,6 +123,7 @@ const generateRefreshToken = (user) => {
     type: 'refresh'
   };
   
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET no configurado');
   return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: '7d' // 7 días
   });
