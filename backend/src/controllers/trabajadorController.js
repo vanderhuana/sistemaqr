@@ -95,6 +95,9 @@ exports.createTrabajador = async (req, res) => {
       estado: 'activo'
     });
 
+    // Recargar para asegurar que el token generado automáticamente esté incluido
+    await trabajador.reload();
+
     res.status(201).json({
       success: true,
       message: 'Trabajador registrado exitosamente',

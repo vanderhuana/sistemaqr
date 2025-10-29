@@ -11,16 +11,25 @@ import QRCode from 'qrcode'
 export async function generarCredencialPDF(participante, datosFormulario, empresaNombre = '', tipoCredencial = 'PARTICIPANTE') {
   return new Promise(async (resolve, reject) => {
     try {
-      // Generar QR localmente usando la librería qrcode
-      // IMPORTANTE: usar qrCode del backend que es único y persistente
-      const qrData = participante.qrCode || participante.token || participante.id
+      // Log para debugging
+      console.log('Datos recibidos en generarCredencialPDF:')
+      console.log('participante completo:', participante)
+      console.log('participante.token:', participante?.token)
+      console.log('participante.id:', participante?.id)
+      console.log('participante.qrCode:', participante?.qrCode)
+      
+      // IMPORTANTE: Usar el token del participante para el QR
+      // El token es el UUID único que se usa para validar el acceso
+      // Si no existe token, usar el id como fallback
+      const qrData = participante?.token || participante?.id
       
       if (!qrData) {
-        reject(new Error('No se encontró código QR para generar la credencial'))
+        console.error('Error: No se encontró token ni id en el participante:', participante)
+        reject(new Error('No se pudo obtener el token del participante. Verifica que el backend esté devolviendo el token.'))
         return
       }
-
-      console.log('Generando QR con datos:', qrData) // Para debugging
+      
+      console.log('✓ Generando QR con token/id:', qrData)
       
       const qrDataUrl = await QRCode.toDataURL(qrData, {
         width: 600,

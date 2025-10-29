@@ -1215,7 +1215,6 @@ import TrabajadoresList from './TrabajadoresList.vue'
 import ParticipantesList from './ParticipantesList.vue'
 import GeneradorQREntradas from './GeneradorQREntradas.vue'
 import jsQR from 'jsqr'
-import QRCode from 'qrcode'
 
 const usuario = ref({})
 
@@ -2042,22 +2041,9 @@ const procesarVenta = async () => {
 }
 
 const generarQRDataUrl = async (qrText) => {
-  // Generar QR localmente usando la misma librería que las credenciales
-  try {
-    return await QRCode.toDataURL(qrText, {
-      width: 600,
-      margin: 1,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      },
-      errorCorrectionLevel: 'H'
-    })
-  } catch (error) {
-    console.error('Error generando QR:', error)
-    // Fallback a un QR vacío si falla
-    return ''
-  }
+  // Por ahora retornamos un QR simple usando una API pública
+  // En producción deberías usar una librería como qrcode
+  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrText)}`
 }
 
 // Venta rápida directa - sin formularios

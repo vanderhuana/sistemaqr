@@ -447,20 +447,16 @@ const enviarFormulario = async () => {
   try {
     const resultado = await trabajadorService.createTrabajador(formData.value)
 
-    console.log('=== RESULTADO DEL BACKEND ===')
-    console.log('Resultado completo:', resultado)
-    console.log('resultado.success:', resultado.success)
-    console.log('resultado.data:', resultado.data)
-    console.log('resultado.trabajador:', resultado.trabajador)
-
     if (resultado.success) {
       // Guardar datos del trabajador registrado
       trabajadorRegistrado.value = resultado.data || resultado.trabajador || resultado
-      datosRegistrados.value = { ...formData.value }
       
-      // Debug: verificar que el QR se haya guardado correctamente
-      console.log('✅ Trabajador guardado en variable:', trabajadorRegistrado.value)
-      console.log('✅ QR Code:', trabajadorRegistrado.value?.qrCode)
+      // Debug: Verificar que el token esté presente
+      console.log('Trabajador registrado recibido del backend:', trabajadorRegistrado.value)
+      console.log('Token del trabajador:', trabajadorRegistrado.value?.token)
+      console.log('ID del trabajador:', trabajadorRegistrado.value?.id)
+      
+      datosRegistrados.value = { ...formData.value }
       
       // Mostrar modal de confirmación
       mostrarModal.value = true
@@ -519,10 +515,9 @@ const confirmarYDescargar = async () => {
     estadoDescarga.value = 'completado'
     
   } catch (error) {
-    console.error('❌ Error generando credencial:', error)
-    console.error('Trabajador:', trabajadorRegistrado.value)
+    console.error('Error generando credencial:', error)
     estadoDescarga.value = 'error'
-    errorDescarga.value = error.message || 'No se pudo generar la credencial. Por favor intenta nuevamente.'
+    errorDescarga.value = 'No se pudo generar la credencial. Por favor intenta nuevamente.'
   }
   
   // Limpiar formulario después de descargar

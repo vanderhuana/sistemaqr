@@ -125,6 +125,9 @@ exports.createParticipante = async (req, res) => {
       estado: 'activo'
     });
 
+    // Recargar para asegurar que el token generado automáticamente esté incluido
+    await participante.reload();
+
     res.status(201).json({
       success: true,
       message: 'Participante registrado exitosamente',
