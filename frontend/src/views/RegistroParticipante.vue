@@ -1013,12 +1013,12 @@ const cerrarModalDescarga = () => {
 
 @media (max-width: 1024px) {
   .contenido-formulario {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     padding: 15px;
   }
 
   .imagen-lado {
-    display: none;
+    display: none !important;
   }
   
   .formulario-card {
@@ -1061,7 +1061,7 @@ const cerrarModalDescarga = () => {
   }
 
   .form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 15px;
   }
 
@@ -1086,7 +1086,7 @@ const cerrarModalDescarga = () => {
   }
 
   .modal-acciones {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 12px;
   }
   
