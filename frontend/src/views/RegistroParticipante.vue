@@ -555,13 +555,20 @@ const enviarFormulario = async () => {
   try {
     const resultado = await participanteService.createParticipante(formData.value)
 
+    console.log('=== RESULTADO DEL BACKEND ===')
+    console.log('Resultado completo:', resultado)
+    console.log('resultado.success:', resultado.success)
+    console.log('resultado.data:', resultado.data)
+    console.log('resultado.participante:', resultado.participante)
+
     if (resultado.success) {
       // Guardar datos del participante registrado
       participanteRegistrado.value = resultado.data || resultado.participante || resultado
       datosRegistrados.value = { ...formData.value }
       
       // Debug: verificar que el QR se haya guardado correctamente
-      console.log('Participante registrado con QR:', participanteRegistrado.value.qrCode)
+      console.log('✅ Participante guardado en variable:', participanteRegistrado.value)
+      console.log('✅ QR Code:', participanteRegistrado.value?.qrCode)
       
       // Mostrar modal de confirmación
       mostrarModal.value = true
@@ -620,9 +627,10 @@ const confirmarYDescargar = async () => {
     estadoDescarga.value = 'completado'
     
   } catch (error) {
-    console.error('Error generando credencial:', error)
+    console.error('❌ Error generando credencial:', error)
+    console.error('Participante:', participanteRegistrado.value)
     estadoDescarga.value = 'error'
-    errorDescarga.value = 'No se pudo generar la credencial. Por favor intenta nuevamente.'
+    errorDescarga.value = error.message || 'No se pudo generar la credencial. Por favor intenta nuevamente.'
   }
   
   // Limpiar formulario después de descargar
