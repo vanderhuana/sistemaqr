@@ -19,6 +19,9 @@ RUN npm run build
 # Etapa 2: Servir con nginx
 FROM nginx:alpine
 
+# Instalar wget para healthcheck
+RUN apk add --no-cache wget
+
 # Copiar build al directorio de nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
 

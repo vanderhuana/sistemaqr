@@ -1,6 +1,9 @@
 # Backend Dockerfile para SISQR6
 FROM node:20-alpine
 
+# Instalar wget para healthcheck
+RUN apk add --no-cache wget
+
 # Establecer directorio de trabajo
 WORKDIR /app
 
