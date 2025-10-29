@@ -30,15 +30,21 @@ app.use(cors({
 
     // Lista de orígenes permitidos por defecto (sin slash final)
     const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:8080',
-      'http://192.168.1.3:5173',
-      'http://192.168.1.3:8080',
-      'http://192.168.1.3:3000',
-      'https://localhost:5173',
-      'https://192.168.1.3:5173',
-      'https://192.168.1.3:3443'
-    ];
+	 'http://localhost:5173',
+ 	 'http://localhost:8080',
+	 'http://192.168.1.3:5173',
+ 	 'http://192.168.1.3:8080',
+ 	 'http://192.168.1.3:3000',
+ 	 'https://localhost:5173',
+	 'https://192.168.1.3:5173',
+ 	 'https://192.168.1.3:3443',
+ 	 'http://142.93.26.33:8080',
+ 	 'https://142.93.26.33',
+ 	 'http://fepp.online',
+ 	 'https://fepp.online',
+         'http://www.fepp.online',
+         'https://www.fepp.online'
+  ];
 
     // Si se definió FRONTEND_URL en env, añádelo (normalizado)
     if (process.env.FRONTEND_URL) {
