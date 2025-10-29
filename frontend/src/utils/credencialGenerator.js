@@ -26,10 +26,9 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
         participante.token || participante.qrCode || participante.id
       )}`
 
-      // Formatear fecha de validez
-      const fechaInicio = new Date()
-      const fechaFin = new Date()
-      fechaFin.setDate(fechaFin.getDate() + 13) // Válido por 13 días
+      // Fechas específicas de FEIPOBOL 2025
+      const fechaInicio = new Date(2025, 0, 13) // 13 de enero 2025
+      const fechaFin = new Date(2025, 0, 25)     // 25 de enero 2025
 
       const formatoFecha = (fecha) => {
         return fecha.toLocaleDateString('es-BO', {

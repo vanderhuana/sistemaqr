@@ -271,6 +271,15 @@
         </div>
       </div>
 
+      <!-- Modal de descarga de credencial -->
+      <ModalDescargaCredencial 
+        :mostrar="mostrarModalDescarga"
+        :estado="estadoDescarga"
+        :nombreArchivo="nombreArchivoDescarga"
+        :mensajeError="errorDescarga"
+        @cerrar="cerrarModalDescarga"
+      />
+
       <!-- Imagen derecha -->
       <div class="imagen-lado">
         <div class="logo-grande">
@@ -286,6 +295,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { participanteService, empresaService } from '../services/api'
 import { generarCredencialPDF } from '../utils/credencialGenerator'
+import ModalDescargaCredencial from '../components/ModalDescargaCredencial.vue'
 
 const formData = ref({
   nombre: '',
@@ -311,6 +321,12 @@ const datosRegistrados = ref({})
 const participanteRegistrado = ref(null)
 const empresasDisponibles = ref([])
 const cargandoEmpresas = ref(false)
+
+// Modal de descarga
+const mostrarModalDescarga = ref(false)
+const estadoDescarga = ref('generando') // generando, descargando, completado, error
+const nombreArchivoDescarga = ref('')
+const errorDescarga = ref('')
 
 // Buscador de zonas
 const busquedaZona = ref('')
@@ -571,15 +587,25 @@ const actualizarDatos = () => {
 }
 
 const confirmarYDescargar = async () => {
-  // Cerrar modal primero
+  // Cerrar modal de confirmación
   mostrarModal.value = false
   
-  // Mostrar mensaje de generando
-  mensaje.value = '⏳ Generando credencial en PDF...'
-  mensajeTipo.value = 'info'
+  // Mostrar modal de descarga en estado "generando"
+  mostrarModalDescarga.value = true
+  estadoDescarga.value = 'generando'
   
   try {
-    // Generar y descargar credencial PDF
+    // Simular breve espera para mostrar el estado generando
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    // Cambiar a estado "descargando"
+    estadoDescarga.value = 'descargando'
+    
+    // Generar nombre de archivo
+    const nombreArchivo = `Credencial-PARTICIPANTE-${datosRegistrados.value.nombre}-${datosRegistrados.value.apellido}.jpg`
+    nombreArchivoDescarga.value = nombreArchivo
+    
+    // Generar y descargar credencial JPEG
     await generarCredencialPDF(
       participanteRegistrado.value,
       datosRegistrados.value,
@@ -587,13 +613,13 @@ const confirmarYDescargar = async () => {
       'PARTICIPANTE'
     )
     
-    // Mostrar mensaje de éxito
-    mensaje.value = '✅ ¡Credencial PDF descargada! Actualizando empresas disponibles...'
-    mensajeTipo.value = 'success'
+    // Cambiar a estado "completado"
+    estadoDescarga.value = 'completado'
+    
   } catch (error) {
-    console.error('Error generando PDF:', error)
-    mensaje.value = '⚠️ Credencial generada pero hubo un problema. Intenta nuevamente.'
-    mensajeTipo.value = 'warning'
+    console.error('Error generando credencial:', error)
+    estadoDescarga.value = 'error'
+    errorDescarga.value = 'No se pudo generar la credencial. Por favor intenta nuevamente.'
   }
   
   // Limpiar formulario después de descargar
@@ -615,9 +641,14 @@ const confirmarYDescargar = async () => {
   
   // Recargar empresas disponibles por si cambió el cupo
   await cargarEmpresasDisponibles()
-  
-  // Mensaje final
-  mensaje.value = '✅ ¡Credencial descargada exitosamente! Ya puedes registrar a otra persona.'
+}
+
+const cerrarModalDescarga = () => {
+  mostrarModalDescarga.value = false
+  estadoDescarga.value = 'generando'
+  nombreArchivoDescarga.value = ''
+  errorDescarga.value = ''
+  mensaje.value = '✅ Registro completado exitosamente. Puedes registrar otro participante.'
   mensajeTipo.value = 'success'
   
   // Limpiar mensaje después de 5 segundos
