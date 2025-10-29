@@ -663,6 +663,7 @@ const validateQRCode = async (qrCode) => {
   lastScanTime.value = now
   processingQR.value = true
   
+  // Pausar temporalmente el escáner para mostrar resultado
   wasScanningBeforePause.value = scannerActive.value
   if (wasScanningBeforePause.value && scanInterval.value) {
     clearInterval(scanInterval.value)
@@ -670,82 +671,87 @@ const validateQRCode = async (qrCode) => {
   }
   
   try {
-    let response
-    let validationType = ''
+    // **DETECTAR TIPO DE QR**
     
-    // Detectar tipo de QR
+    // 1. Token de acceso (trabajador/participante)
+    if (esTokenAcceso(qrCode)) {
+      console.log('� Token de acceso detectado:', qrCode)
+      await validarAccesoPersonal(qrCode)
+      return
+    }
+    
+    // 2. Entrada simple (QR físico generado)
     if (esEntradaSimple(qrCode)) {
-      console.log('🎫 Entrada simple detectada:', qrCode)
-      response = await apiClient.post('/api/validation/validar-entrada', { token: qrCode })
-      validationType = 'entrada_simple'
-    } else if (esTokenAcceso(qrCode)) {
-      console.log('🆔 Token de acceso detectado:', qrCode)
-      response = await accessService.validateAccess(qrCode, 'trabajador')
-      validationType = 'access'
-    } else {
-      console.log('🎫 Ticket de evento detectado:', qrCode)
-      response = await ticketService.validateTicket(qrCode)
-      validationType = 'ticket'
+      console.log('� Entrada simple detectada:', qrCode)
+      await validarEntradaSimpleDirecta(qrCode)
+      return
     }
     
-    const success = response.success || response.data?.success || false
+    // 3. Ticket de evento - validar directamente
+    console.log('🎫 Ticket de evento detectado:', qrCode)
+    await validarTicketEvento(qrCode)
+    
+  } catch (error) {
+    console.error('❌ Error procesando QR:', error)
+    
+    resultado.value = {
+      success: false,
+      message: error.message || 'Error de conexión',
+      result: 'error'
+    }
+    mostrarResultado.value = true
+    
+    setTimeout(() => {
+      processingQR.value = false
+      mostrarResultado.value = false
+      if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
+        startScanning()
+      }
+    }, 3000)
+  }
+}
+
+const validarAccesoPersonal = async (token) => {
+  try {
+    console.log('🔍 Validando token de acceso:', token)
+    
+    const response = await accessService.validateAccess(token, null)
+    
+    console.log('� Respuesta del servidor:', response)
+    
     const timestamp = new Date()
-    const responseData = response.data || response
     
-    // Agregar el tipo de validación al resultado para que el modal lo use
-    // Si el backend ya lo envió, respetarlo; si no, usar el detectado localmente
-    if (!responseData.validationType) {
-      responseData.validationType = validationType
+    // Agregar estadísticas
+    estadisticas.value.accesosHoy++
+    if (response.success) {
+      estadisticas.value.validosHoy++
+    } else {
+      estadisticas.value.rechazadosHoy++
     }
     
-    console.log('📋 Tipo de validación:', responseData.validationType, '| Backend:', response.data?.validationType, '| Local:', validationType)
-    
-    const validation = {
-      id: Date.now(),
-      qrCode: qrCode,
-      success: success,
-      message: responseData.message || '',
-      ticketNumber: responseData.ticket?.ticketNumber || responseData.entrada?.numero || '',
-      timestamp: timestamp,
-      type: validationType
-    }
-    
-    lastValidationResult.value = validation
-    validationHistory.value.unshift(validation)
-    if (validationHistory.value.length > 10) {
-      validationHistory.value = validationHistory.value.slice(0, 10)
-    }
-    
+    // Agregar al historial
     validacionesRecientes.value.unshift({
-      id: validation.id,
+      id: Date.now(),
       fecha: timestamp.toISOString(),
-      nombre: responseData.persona?.nombre || responseData.ticket?.buyerName || 'Entrada Simple',
-      tipo: validationType === 'access' ? 'trabajador' : validationType === 'entrada_simple' ? 'entrada' : 'entrada evento',
-      valida: success,
-      motivo: responseData.message || ''
+      nombre: response.persona ? `${response.persona.nombre} ${response.persona.apellido}` : 'Desconocido',
+      tipo: response.tipo || response.persona?.tipo || 'trabajador',
+      valida: response.success,
+      motivo: response.message || ''
     })
     
     if (validacionesRecientes.value.length > 10) {
       validacionesRecientes.value.pop()
     }
     
-    estadisticas.value.accesosHoy++
-    if (success) {
-      estadisticas.value.validosHoy++
-    } else {
-      estadisticas.value.rechazadosHoy++
-    }
-    
     // Mostrar modal de resultado
-    resultado.value = responseData
+    resultado.value = response
     mostrarResultado.value = true
     
-    // Tiempo de cierre automático: 8 segundos para QR válidos, 6 para inválidos
-    const autoCloseTime = success ? 8000 : 6000
+    // Tiempo de cierre automático
+    const autoCloseTime = response.success ? 8000 : 6000
     
     setTimeout(() => {
       processingQR.value = false
-      lastValidationResult.value = null
       mostrarResultado.value = false
       if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
         startScanning()
@@ -753,34 +759,152 @@ const validateQRCode = async (qrCode) => {
     }, autoCloseTime)
     
   } catch (error) {
-    console.error('❌ Error validando QR:', error)
+    console.error('❌ Error validando acceso:', error)
     
-    const validation = {
-      id: Date.now(),
-      qrCode: qrCode,
-      success: false,
-      message: error.response?.data?.message || 'Error de conexión',
-      ticketNumber: '',
-      timestamp: new Date()
-    }
-    
-    lastValidationResult.value = validation
-    validationHistory.value.unshift(validation)
-    if (validationHistory.value.length > 10) {
-      validationHistory.value = validationHistory.value.slice(0, 10)
-    }
-    
-    // Mostrar modal de error
     resultado.value = {
       success: false,
-      message: error.response?.data?.message || 'Error de conexión',
+      message: error.response?.data?.message || error.message || 'Error de conexión',
       result: 'error'
     }
     mostrarResultado.value = true
     
     setTimeout(() => {
       processingQR.value = false
-      lastValidationResult.value = null
+      mostrarResultado.value = false
+      if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
+        startScanning()
+      }
+    }, 3000)
+  }
+}
+
+const validarEntradaSimpleDirecta = async (token) => {
+  try {
+    console.log('🔍 Validando entrada simple:', token)
+    
+    const response = await apiClient.post('/api/validation/validar-entrada', { token })
+    const responseData = response.data
+    
+    console.log('📡 Respuesta del servidor:', responseData)
+    
+    const timestamp = new Date()
+    
+    // Agregar estadísticas
+    estadisticas.value.accesosHoy++
+    if (responseData.success) {
+      estadisticas.value.validosHoy++
+    } else {
+      estadisticas.value.rechazadosHoy++
+    }
+    
+    // Agregar al historial
+    validacionesRecientes.value.unshift({
+      id: Date.now(),
+      fecha: timestamp.toISOString(),
+      nombre: 'Entrada Simple',
+      tipo: 'entrada',
+      valida: responseData.success,
+      motivo: responseData.message || ''
+    })
+    
+    if (validacionesRecientes.value.length > 10) {
+      validacionesRecientes.value.pop()
+    }
+    
+    // Mostrar modal de resultado
+    resultado.value = responseData
+    mostrarResultado.value = true
+    
+    // Tiempo de cierre automático
+    const autoCloseTime = responseData.success ? 8000 : 6000
+    
+    setTimeout(() => {
+      processingQR.value = false
+      mostrarResultado.value = false
+      if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
+        startScanning()
+      }
+    }, autoCloseTime)
+    
+  } catch (error) {
+    console.error('❌ Error validando entrada simple:', error)
+    
+    resultado.value = {
+      success: false,
+      message: error.response?.data?.message || error.message || 'Error de conexión',
+      result: 'error'
+    }
+    mostrarResultado.value = true
+    
+    setTimeout(() => {
+      processingQR.value = false
+      mostrarResultado.value = false
+      if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
+        startScanning()
+      }
+    }, 3000)
+  }
+}
+
+const validarTicketEvento = async (qrCode) => {
+  try {
+    console.log('🔍 Validando ticket de evento:', qrCode)
+    
+    const response = await ticketService.validateTicket(qrCode)
+    
+    console.log('📡 Respuesta del servidor:', response)
+    
+    const timestamp = new Date()
+    
+    // Agregar estadísticas
+    estadisticas.value.accesosHoy++
+    if (response.success) {
+      estadisticas.value.validosHoy++
+    } else {
+      estadisticas.value.rechazadosHoy++
+    }
+    
+    // Agregar al historial
+    validacionesRecientes.value.unshift({
+      id: Date.now(),
+      fecha: timestamp.toISOString(),
+      nombre: response.ticket?.buyerName || 'Entrada Evento',
+      tipo: 'entrada evento',
+      valida: response.success,
+      motivo: response.message || ''
+    })
+    
+    if (validacionesRecientes.value.length > 10) {
+      validacionesRecientes.value.pop()
+    }
+    
+    // Mostrar modal de resultado
+    resultado.value = response
+    mostrarResultado.value = true
+    
+    // Tiempo de cierre automático
+    const autoCloseTime = response.success ? 8000 : 6000
+    
+    setTimeout(() => {
+      processingQR.value = false
+      mostrarResultado.value = false
+      if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
+        startScanning()
+      }
+    }, autoCloseTime)
+    
+  } catch (error) {
+    console.error('❌ Error validando ticket:', error)
+    
+    resultado.value = {
+      success: false,
+      message: error.response?.data?.message || error.message || 'Error de conexión',
+      result: 'error'
+    }
+    mostrarResultado.value = true
+    
+    setTimeout(() => {
+      processingQR.value = false
       mostrarResultado.value = false
       if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
         startScanning()

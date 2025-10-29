@@ -19,6 +19,13 @@ const yaIngresoHoy = (ultimoAcceso) => {
   // Si aún no son las 10 AM, la hora de reinicio es 10 AM de ayer
   const horaReinicioReferencia = ahora >= horaReinicioHoy ? horaReinicioHoy : new Date(horaReinicioHoy.getTime() - 24 * 60 * 60 * 1000);
   
+  console.log('🔍 Verificación de acceso:', {
+    ultimoAcceso: ultimoIngresoDate.toISOString(),
+    horaActual: ahora.toISOString(),
+    horaReinicioReferencia: horaReinicioReferencia.toISOString(),
+    yaIngreso: ultimoIngresoDate >= horaReinicioReferencia
+  });
+  
   // Verificar si el último acceso fue después de la última hora de reinicio
   return ultimoIngresoDate >= horaReinicioReferencia;
 };
@@ -104,6 +111,13 @@ const accessController = {
       }
       
       // Verificar si ya ingresó hoy
+      console.log('🕐 Verificando último acceso:', {
+        ultimoAcceso: persona.ultimoAcceso,
+        yaIngreso: yaIngresoHoy(persona.ultimoAcceso),
+        horaActual: new Date(),
+        nombre: `${persona.nombre} ${persona.apellido}`
+      });
+      
       if (yaIngresoHoy(persona.ultimoAcceso)) {
         return res.status(400).json({
           success: false,
@@ -123,8 +137,10 @@ const accessController = {
       }
       
       // Registrar el acceso actual
+      console.log('✅ Registrando nuevo acceso para:', `${persona.nombre} ${persona.apellido}`);
       persona.ultimoAcceso = new Date();
       await persona.save();
+      console.log('💾 Acceso guardado. Nuevo ultimoAcceso:', persona.ultimoAcceso);
       
       // ACCESO PERMITIDO
       return res.status(200).json({
