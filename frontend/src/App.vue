@@ -144,7 +144,7 @@
       />
     </div> <!-- Fin vista-dashboard -->
 
-    <!-- FOOTER removed per request -->
+    
 
   </div>
 </template>

@@ -30,6 +30,7 @@ app.use(cors({
 
     // Lista de orígenes permitidos por defecto (sin slash final)
     const allowedOrigins = [
+<<<<<<< HEAD
 	 'http://localhost:5173',
  	 'http://localhost:8080',
 	 'http://192.168.1.3:5173',
