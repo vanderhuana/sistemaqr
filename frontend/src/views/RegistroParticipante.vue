@@ -1108,28 +1108,156 @@ const confirmarYDescargar = async () => {
 }
 
 @media (max-width: 768px) {
+  .registro-container {
+    padding: 10px;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
   }
 
   .formulario-card {
-    padding: 25px;
+    padding: 20px 15px;
+    border-radius: 15px;
   }
 
   .header-text h1 {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
+    line-height: 1.3;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+  }
+
+  .form-control, .buscador-zona {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+
+  .btn-enviar {
+    padding: 14px;
+    font-size: 1rem;
+  }
+
+  .lista-zonas {
+    max-height: 200px;
+  }
+
+  .zona-item {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
   
+  .modal-confirmacion {
+    max-width: 95%;
+    margin: 0 10px;
+  }
+
   .modal-acciones {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
   
   .modal-header h2 {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
   }
   
   .icono-exito {
     font-size: 3rem;
+  }
+
+  .btn-actualizar, .btn-confirmar {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+
+  .seccion-referencia {
+    padding: 15px;
+    border-radius: 10px;
+  }
+
+  .seccion-referencia h3 {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .registro-container {
+    padding: 5px;
+  }
+
+  .formulario-card {
+    padding: 15px 10px;
+    border-radius: 12px;
+  }
+
+  .header-text h1 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .form-control, .buscador-zona {
+    padding: 9px 10px;
+    font-size: 0.9rem;
+  }
+
+  .btn-enviar {
+    padding: 12px;
+    font-size: 0.95rem;
+  }
+
+  .mensaje-error, .mensaje-ayuda {
+    font-size: 0.8rem;
+  }
+
+  .lista-zonas {
+    max-height: 180px;
+  }
+
+  .zona-item {
+    padding: 9px 10px;
+    font-size: 0.85rem;
+  }
+
+  .modal-header {
+    padding: 20px 15px;
+  }
+
+  .modal-body {
+    padding: 20px 15px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .datos-confirmacion p {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+
+  .pregunta-confirmacion {
+    font-size: 0.95rem;
+  }
+
+  .btn-actualizar, .btn-confirmar {
+    padding: 10px 15px;
+    font-size: 0.85rem;
+  }
+
+  .icono-exito {
+    font-size: 2.5rem;
+  }
+
+  .notas-importante {
+    padding: 12px;
+    font-size: 0.8rem;
   }
 }
 </style>
