@@ -12,10 +12,15 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
   return new Promise(async (resolve, reject) => {
     try {
       // Generar QR localmente usando la librería qrcode
-      // IMPORTANTE: Usar el mismo qrCode que generó el backend
-      const qrData = participante.qrCode || participante.id || `FALLBACK-${datosFormulario.ci}-${Date.now()}`
+      // IMPORTANTE: usar qrCode del backend que es único y persistente
+      const qrData = participante.qrCode || participante.token || participante.id
       
-      console.log('Generando QR con datos:', qrData) // Para debug
+      if (!qrData) {
+        reject(new Error('No se encontró código QR para generar la credencial'))
+        return
+      }
+
+      console.log('Generando QR con datos:', qrData) // Para debugging
       
       const qrDataUrl = await QRCode.toDataURL(qrData, {
         width: 600,

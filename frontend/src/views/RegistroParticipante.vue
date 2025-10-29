@@ -560,6 +560,9 @@ const enviarFormulario = async () => {
       participanteRegistrado.value = resultado.data || resultado.participante || resultado
       datosRegistrados.value = { ...formData.value }
       
+      // Debug: verificar que el QR se haya guardado correctamente
+      console.log('Participante registrado con QR:', participanteRegistrado.value.qrCode)
+      
       // Mostrar modal de confirmación
       mostrarModal.value = true
     } else {

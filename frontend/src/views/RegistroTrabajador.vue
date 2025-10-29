@@ -452,6 +452,9 @@ const enviarFormulario = async () => {
       trabajadorRegistrado.value = resultado.data || resultado.trabajador || resultado
       datosRegistrados.value = { ...formData.value }
       
+      // Debug: verificar que el QR se haya guardado correctamente
+      console.log('Trabajador registrado con QR:', trabajadorRegistrado.value.qrCode)
+      
       // Mostrar modal de confirmación
       mostrarModal.value = true
     } else {
