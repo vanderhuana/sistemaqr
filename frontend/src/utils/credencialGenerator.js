@@ -12,7 +12,11 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
   return new Promise(async (resolve, reject) => {
     try {
       // Generar QR localmente usando la librería qrcode
-      const qrData = participante.token || participante.qrCode || participante.id || `${datosFormulario.nombre}-${datosFormulario.ci}`
+      // IMPORTANTE: Usar el mismo qrCode que generó el backend
+      const qrData = participante.qrCode || participante.id || `FALLBACK-${datosFormulario.ci}-${Date.now()}`
+      
+      console.log('Generando QR con datos:', qrData) // Para debug
+      
       const qrDataUrl = await QRCode.toDataURL(qrData, {
         width: 600,
         margin: 1,
