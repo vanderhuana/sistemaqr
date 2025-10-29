@@ -545,7 +545,8 @@ export const trabajadorService = {
   async createTrabajador(data) {
     try {
       const response = await apiClient.post('/api/trabajadores', data)
-      return { success: true, data: response.data }
+      // El backend ya devuelve { success, message, data }, no envolver de nuevo
+      return response.data
     } catch (error) {
       console.error('Error creando trabajador:', error)
       return { success: false, error: error.response?.data?.error || 'Error al registrar trabajador' }
@@ -599,7 +600,8 @@ export const participanteService = {
   async createParticipante(data) {
     try {
       const response = await apiClient.post('/api/participantes', data)
-      return { success: true, data: response.data }
+      // El backend ya devuelve { success, message, data }, no envolver de nuevo
+      return response.data
     } catch (error) {
       console.error('Error creando participante:', error)
       return { success: false, error: error.response?.data?.error || 'Error al registrar participante' }

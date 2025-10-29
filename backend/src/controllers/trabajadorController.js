@@ -98,10 +98,22 @@ exports.createTrabajador = async (req, res) => {
     // Recargar para asegurar que el token generado automáticamente esté incluido
     await trabajador.reload();
 
+    // Debug: Verificar datos antes de enviar
+    console.log('===== TRABAJADOR ANTES DE ENVIAR =====');
+    console.log('trabajador.id:', trabajador.id);
+    console.log('trabajador.token:', trabajador.token);
+    console.log('trabajador.nombre:', trabajador.nombre);
+    console.log('trabajador.ci:', trabajador.ci);
+    console.log('trabajador completo:', trabajador.toJSON());
+
+    const trabajadorJSON = trabajador.toJSON();
+    console.log('trabajadorJSON:', trabajadorJSON);
+    console.log('trabajadorJSON.token:', trabajadorJSON.token);
+
     res.status(201).json({
       success: true,
       message: 'Trabajador registrado exitosamente',
-      data: trabajador
+      data: trabajadorJSON
     });
   } catch (error) {
     console.error('Error al crear trabajador:', error);

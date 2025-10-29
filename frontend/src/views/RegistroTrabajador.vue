@@ -447,22 +447,35 @@ const enviarFormulario = async () => {
   try {
     const resultado = await trabajadorService.createTrabajador(formData.value)
 
-    if (resultado.success) {
+    console.log('===== RESPUESTA COMPLETA DEL BACKEND =====')
+    console.log('resultado completo:', resultado)
+    console.log('resultado.success:', resultado.success)
+    console.log('resultado.data:', resultado.data)
+    console.log('resultado.error:', resultado.error)
+    console.log('resultado.trabajador:', resultado.trabajador)
+
+    // Verificar que el registro fue exitoso
+    if (resultado.success && resultado.data) {
       // Guardar datos del trabajador registrado
-      trabajadorRegistrado.value = resultado.data || resultado.trabajador || resultado
+      trabajadorRegistrado.value = resultado.data
       
       // Debug: Verificar que el token esté presente
+      console.log('===== TRABAJADOR REGISTRADO =====')
       console.log('Trabajador registrado recibido del backend:', trabajadorRegistrado.value)
       console.log('Token del trabajador:', trabajadorRegistrado.value?.token)
       console.log('ID del trabajador:', trabajadorRegistrado.value?.id)
+      console.log('QR Code del trabajador:', trabajadorRegistrado.value?.qrCode)
+      console.log('Todas las propiedades:', Object.keys(trabajadorRegistrado.value || {}))
       
       datosRegistrados.value = { ...formData.value }
       
       // Mostrar modal de confirmación
       mostrarModal.value = true
     } else {
+      // Mostrar error
       mensaje.value = resultado.error || 'Error al registrar. Por favor intenta nuevamente.'
       mensajeTipo.value = 'error'
+      console.error('Error del backend:', resultado.error)
     }
   } catch (error) {
     console.error('Error:', error)

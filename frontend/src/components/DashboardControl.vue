@@ -332,6 +332,7 @@
 import { ref, computed, onMounted } from 'vue'
 import apiClient, { accessService, ticketService, validationService } from '@/services/api'
 import QRValidResult from './QRValidResult.vue'
+import jsQR from 'jsqr'
 
 // Props
 defineEmits(['cerrar-sesion'])
@@ -596,8 +597,8 @@ const startScanning = () => {
 
 const captureAndDecodeQR = async () => {
   try {
-    const video = videoElement.value
-    const canvas = canvasElement.value
+    const video = document.querySelector('video')
+    const canvas = document.querySelector('canvas')
     
     if (!video || !canvas || !video.videoWidth) return
     
@@ -620,12 +621,12 @@ const captureAndDecodeQR = async () => {
       0, 0, scanWidth, scanHeight // área destino (todo el canvas)
     )
     
+    // Obtener datos de imagen
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
     
-    const { default: jsQR } = await import('jsqr')
-    // Opciones para mejorar detección
+    // Decodificar QR usando jsQR con opciones optimizadas
     const qrResult = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert"
+      inversionAttempts: 'dontInvert' // Mejora la velocidad al no intentar inversión de colores
     })
     
     if (qrResult && qrResult.data) {

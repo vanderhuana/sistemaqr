@@ -128,10 +128,22 @@ exports.createParticipante = async (req, res) => {
     // Recargar para asegurar que el token generado automáticamente esté incluido
     await participante.reload();
 
+    // Debug: Verificar datos antes de enviar
+    console.log('===== PARTICIPANTE ANTES DE ENVIAR =====');
+    console.log('participante.id:', participante.id);
+    console.log('participante.token:', participante.token);
+    console.log('participante.nombre:', participante.nombre);
+    console.log('participante.ci:', participante.ci);
+    console.log('participante completo:', participante.toJSON());
+
+    const participanteJSON = participante.toJSON();
+    console.log('participanteJSON:', participanteJSON);
+    console.log('participanteJSON.token:', participanteJSON.token);
+
     res.status(201).json({
       success: true,
       message: 'Participante registrado exitosamente',
-      data: participante
+      data: participanteJSON
     });
   } catch (error) {
     console.error('Error al crear participante:', error);
