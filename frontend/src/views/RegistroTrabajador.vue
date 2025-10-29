@@ -171,12 +171,25 @@
             <div class="form-row">
               <div class="form-group">
                 <label>Parentesco:</label>
-                <input 
-                  v-model="formData.parentesco" 
-                  type="text" 
-                  placeholder="Ej: Padre, Madre, Hermano"
-                  class="form-control"
-                />
+                <select v-model="formData.parentesco" class="form-control">
+                  <option value="">Seleccionar parentesco</option>
+                  <option value="Padre">Padre</option>
+                  <option value="Madre">Madre</option>
+                  <option value="Hermano/a">Hermano/a</option>
+                  <option value="Hijo/a">Hijo/a</option>
+                  <option value="Esposo/a">Esposo/a</option>
+                  <option value="Abuelo/a">Abuelo/a</option>
+                  <option value="Nieto/a">Nieto/a</option>
+                  <option value="Tío/a">Tío/a</option>
+                  <option value="Sobrino/a">Sobrino/a</option>
+                  <option value="Primo/a">Primo/a</option>
+                  <option value="Cuñado/a">Cuñado/a</option>
+                  <option value="Suegro/a">Suegro/a</option>
+                  <option value="Yerno/Nuera">Yerno/Nuera</option>
+                  <option value="Amigo/a">Amigo/a</option>
+                  <option value="Conocido/a">Conocido/a</option>
+                  <option value="Otro">Otro</option>
+                </select>
               </div>
 
               <div class="form-group">
@@ -185,8 +198,13 @@
                   v-model="formData.celularReferencia" 
                   type="tel" 
                   placeholder="########"
+                  maxlength="8"
+                  @input="validarCelularReferencia"
                   class="form-control"
+                  :class="{ 'input-error': errores.celularReferencia }"
                 />
+                <span v-if="errores.celularReferencia" class="mensaje-error">{{ errores.celularReferencia }}</span>
+                <span v-else class="mensaje-ayuda">Opcional: 8 dígitos, inicia con 6 o 7</span>
               </div>
             </div>
           </div>
