@@ -1014,10 +1014,272 @@ const cerrarModalDescarga = () => {
 @media (max-width: 1024px) {
   .contenido-formulario {
     grid-template-columns: 1fr;
+    padding: 15px;
   }
 
   .imagen-lado {
     display: none;
+  }
+  
+  .formulario-card {
+    max-width: 100%;
+  }
+}
+
+/* Tablets y dispositivos medianos */
+@media (max-width: 768px) {
+  .header-feipobol {
+    padding: 15px 10px;
+  }
+
+  .logo-container {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .logo-img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .header-text h1 {
+    font-size: 1.8rem;
+  }
+
+  .header-text p {
+    font-size: 0.85rem;
+  }
+
+  .formulario-card {
+    padding: 20px 15px;
+  }
+
+  .titulo-formulario {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  .form-control, .buscador-zona, select {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+
+  .btn-enviar {
+    padding: 14px 25px;
+    font-size: 1rem;
+    width: 100%;
+  }
+  
+  .modal-confirmacion {
+    max-width: 95%;
+    margin: 0 10px;
+  }
+
+  .modal-acciones {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .icono-exito {
+    font-size: 3rem;
+  }
+
+  .btn-actualizar, .btn-confirmar {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+
+  .seccion-referencia {
+    padding: 15px;
+    border-radius: 10px;
+  }
+
+  .seccion-referencia h3 {
+    font-size: 1rem;
+  }
+}
+
+/* Móviles */
+@media (max-width: 480px) {
+  .registro-participante {
+    padding: 0;
+  }
+
+  .header-feipobol {
+    padding: 12px 8px;
+  }
+
+  .logo-img {
+    width: 50px;
+    height: 50px;
+  }
+
+  .header-text h1 {
+    font-size: 1.5rem;
+  }
+
+  .header-text p {
+    font-size: 0.75rem;
+  }
+
+  .contenido-formulario {
+    padding: 10px;
+  }
+
+  .formulario-card {
+    padding: 15px 10px;
+    border-radius: 12px;
+  }
+
+  .titulo-formulario {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    line-height: 1.3;
+  }
+
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .form-control, .buscador-zona, select {
+    padding: 9px 10px;
+    font-size: 0.9rem;
+  }
+
+  .btn-enviar {
+    padding: 12px;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+
+  .mensaje-error, .mensaje-ayuda {
+    font-size: 0.8rem;
+  }
+
+  .lista-zonas {
+    max-height: 180px;
+  }
+
+  .zona-item {
+    padding: 9px 10px;
+    font-size: 0.85rem;
+  }
+
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .modal-confirmacion {
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 20px 15px;
+  }
+
+  .modal-body {
+    padding: 20px 15px;
+  }
+
+  .modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .icono-exito {
+    font-size: 2.5rem;
+  }
+
+  .datos-confirmacion {
+    padding: 15px;
+  }
+
+  .datos-confirmacion p {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+
+  .pregunta-confirmacion {
+    font-size: 0.95rem;
+  }
+
+  .btn-actualizar, .btn-confirmar {
+    padding: 10px 15px;
+    font-size: 0.9rem;
+  }
+
+  .seccion-referencia {
+    padding: 12px;
+  }
+
+  .seccion-referencia h3 {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+  }
+
+  .requerido {
+    font-size: 0.9rem;
+  }
+
+  .text-warning {
+    font-size: 0.8rem;
+  }
+}
+
+/* Móviles pequeños */
+@media (max-width: 360px) {
+  .header-text h1 {
+    font-size: 1.3rem;
+  }
+
+  .titulo-formulario {
+    font-size: 1rem;
+  }
+
+  .form-control, .buscador-zona, select {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+
+  .btn-enviar {
+    padding: 10px;
+    font-size: 0.9rem;
+  }
+
+  .modal-header {
+    padding: 15px 10px;
+  }
+
+  .modal-body {
+    padding: 15px 10px;
+  }
+
+  .datos-confirmacion {
+    padding: 12px;
+  }
+
+  .datos-confirmacion p {
+    font-size: 0.85rem;
   }
 }
 
@@ -1155,159 +1417,5 @@ const cerrarModalDescarga = () => {
   background: linear-gradient(135deg, #5A7A6A 0%, #7A938A 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(107, 144, 128, 0.4);
-}
-
-@media (max-width: 768px) {
-  .registro-container {
-    padding: 10px;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .formulario-card {
-    padding: 20px 15px;
-    border-radius: 15px;
-  }
-
-  .header-text h1 {
-    font-size: 1.5rem;
-    line-height: 1.3;
-  }
-
-  .form-group label {
-    font-size: 0.9rem;
-  }
-
-  .form-control, .buscador-zona {
-    padding: 10px 12px;
-    font-size: 0.95rem;
-  }
-
-  .btn-enviar {
-    padding: 14px;
-    font-size: 1rem;
-  }
-
-  .lista-zonas {
-    max-height: 200px;
-  }
-
-  .zona-item {
-    padding: 10px 12px;
-    font-size: 0.9rem;
-  }
-  
-  .modal-confirmacion {
-    max-width: 95%;
-    margin: 0 10px;
-  }
-
-  .modal-acciones {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  
-  .modal-header h2 {
-    font-size: 1.3rem;
-  }
-  
-  .icono-exito {
-    font-size: 3rem;
-  }
-
-  .btn-actualizar, .btn-confirmar {
-    padding: 12px 20px;
-    font-size: 0.9rem;
-  }
-
-  .seccion-referencia {
-    padding: 15px;
-    border-radius: 10px;
-  }
-
-  .seccion-referencia h3 {
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .registro-container {
-    padding: 5px;
-  }
-
-  .formulario-card {
-    padding: 15px 10px;
-    border-radius: 12px;
-  }
-
-  .header-text h1 {
-    font-size: 1.3rem;
-    margin-bottom: 20px;
-  }
-
-  .form-group label {
-    font-size: 0.85rem;
-    margin-bottom: 6px;
-  }
-
-  .form-control, .buscador-zona {
-    padding: 9px 10px;
-    font-size: 0.9rem;
-  }
-
-  .btn-enviar {
-    padding: 12px;
-    font-size: 0.95rem;
-  }
-
-  .mensaje-error, .mensaje-ayuda {
-    font-size: 0.8rem;
-  }
-
-  .lista-zonas {
-    max-height: 180px;
-  }
-
-  .zona-item {
-    padding: 9px 10px;
-    font-size: 0.85rem;
-  }
-
-  .modal-header {
-    padding: 20px 15px;
-  }
-
-  .modal-body {
-    padding: 20px 15px;
-  }
-
-  .modal-header h2 {
-    font-size: 1.1rem;
-  }
-
-  .datos-confirmacion p {
-    font-size: 0.9rem;
-    margin-bottom: 8px;
-  }
-
-  .pregunta-confirmacion {
-    font-size: 0.95rem;
-  }
-
-  .btn-actualizar, .btn-confirmar {
-    padding: 10px 15px;
-    font-size: 0.85rem;
-  }
-
-  .icono-exito {
-    font-size: 2.5rem;
-  }
-
-  .notas-importante {
-    padding: 12px;
-    font-size: 0.8rem;
-  }
 }
 </style>

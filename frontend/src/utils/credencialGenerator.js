@@ -53,8 +53,8 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
       const logoImg = new URL('../assets/logo02.png', import.meta.url).href
 
       // Fechas específicas de FEIPOBOL 2025
-      const fechaInicio = new Date(2025, 0, 13) // 13 de enero 2025
-      const fechaFin = new Date(2025, 0, 25)     // 25 de enero 2025
+      const fechaInicio = new Date(2025, 10, 7) // 7 de noviembre 2025
+      const fechaFin = new Date(2025, 10, 16)    // 16 de noviembre 2025
 
       const formatoFecha = (fecha) => {
         return fecha.toLocaleDateString('es-BO', {
