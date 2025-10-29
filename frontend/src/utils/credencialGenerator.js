@@ -1,8 +1,7 @@
-import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
 /**
- * Genera una credencial en PDF con el diseño de FEIPOBOL
+ * Genera una credencial en formato JPEG con el diseño de FEIPOBOL
  * @param {Object} participante - Datos del participante
  * @param {Object} datosFormulario - Datos del formulario
  * @param {string} empresaNombre - Nombre de la empresa/stand
@@ -202,15 +201,15 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
               // Combinar fondo + contenido
               ctx.drawImage(contentCanvas, 0, 0, 1080, 1920)
               
-              // Crear PDF en orientación vertical (portrait)
-              const pdf = new jsPDF('portrait', 'mm', [108, 192])
+              // Convertir canvas a imagen JPEG con alta calidad
+              const imgData = canvas.toDataURL('image/jpeg', 0.95)
               
-              const imgData = canvas.toDataURL('image/png', 1.0)
-              pdf.addImage(imgData, 'PNG', 0, 0, 108, 192)
-
-              // Descargar PDF
-              const nombreArchivo = `Credencial-${tipoCredencial}-${datosFormulario.nombre}-${datosFormulario.apellido}.pdf`
-              pdf.save(nombreArchivo)
+              // Crear enlace de descarga para JPEG
+              const link = document.createElement('a')
+              const nombreArchivo = `Credencial-${tipoCredencial}-${datosFormulario.nombre}-${datosFormulario.apellido}.jpg`
+              link.download = nombreArchivo
+              link.href = imgData
+              link.click()
 
               // Limpiar
               document.body.removeChild(container)
