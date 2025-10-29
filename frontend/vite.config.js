@@ -17,6 +17,21 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    // Forzar cache busting con hash en nombres de archivos
+    rollupOptions: {
+      output: {
+        // Agregar hash a todos los archivos JS/CSS
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
+      }
+    },
+    // Deshabilitar sourcemaps en producción para reducir tamaño
+    sourcemap: false,
+    // Optimizar chunks
+    chunkSizeWarningLimit: 1000,
+  },
   server: (() => {
     // Intentar cargar certificados generados en backend/ssl
     const __filename = fileURLToPath(import.meta.url)
