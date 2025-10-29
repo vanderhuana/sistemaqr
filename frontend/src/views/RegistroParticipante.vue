@@ -83,19 +83,33 @@
           </div>
 
           <div class="form-row">
-            <div class="form-group">
+            <div class="form-group zona-group">
               <label>Zona:</label>
+              <!-- Buscador de zona -->
               <input 
-                v-model="formData.zona" 
-                type="text" 
-                placeholder="Tu zona de residencia"
-                @input="validarZona"
-                minlength="3"
-                class="form-control"
-                :class="{ 'input-error': errores.zona }"
+                v-model="busquedaZona"
+                type="text"
+                placeholder="Buscar zona..."
+                class="form-control buscador-zona"
+                @focus="mostrarListaZonas = true"
+                @blur="ocultarListaZonas"
               />
-              <span v-if="errores.zona" class="mensaje-error">{{ errores.zona }}</span>
-              <span v-else class="mensaje-ayuda">Mínimo 3 caracteres</span>
+              <!-- Lista de zonas filtradas -->
+              <div v-if="mostrarListaZonas && zonasFiltradas.length > 0" class="lista-zonas">
+                <div 
+                  v-for="zona in zonasFiltradas" 
+                  :key="zona"
+                  class="zona-item"
+                  @mousedown="seleccionarZona(zona)"
+                >
+                  {{ zona }}
+                </div>
+              </div>
+              <div v-if="mostrarListaZonas && zonasFiltradas.length === 0 && busquedaZona" class="lista-zonas">
+                <div class="zona-item zona-no-encontrada">
+                  No se encontró la zona "{{ busquedaZona }}"
+                </div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -137,7 +151,6 @@
                 <option value="">Seleccionar</option>
                 <option value="M">Masculino</option>
                 <option value="F">Femenino</option>
-                <option value="Otro">Otro</option>
               </select>
             </div>
           </div>
@@ -252,7 +265,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { participanteService, empresaService } from '../services/api'
 import { generarCredencialPDF } from '../utils/credencialGenerator'
 
@@ -281,12 +294,108 @@ const participanteRegistrado = ref(null)
 const empresasDisponibles = ref([])
 const cargandoEmpresas = ref(false)
 
+// Buscador de zonas
+const busquedaZona = ref('')
+const mostrarListaZonas = ref(false)
+const zonasDisponibles = [
+  'Centro Histórico',
+  'Plan 40',
+  'Las Lecherías',
+  'Ciudad Satélite',
+  'Villa Copacabana',
+  'Cantumarca',
+  'Zona Huachacalla',
+  'San Pedro',
+  'San Benito',
+  'San Gerardo',
+  'Zona Alta',
+  'Pampa Ingenio',
+  'Villa Santiago',
+  'Villa Venezuela',
+  'Villa Santa Fe',
+  'Chapini',
+  'Villa Tomás Frías',
+  'Villa Imperial',
+  'Villa Unificada',
+  'Villa Magisterio',
+  'San Antonio',
+  'Villa Concepción',
+  'Villa Costanera',
+  'Alto Potosí',
+  'San Clemente',
+  'Villa Colón',
+  'San Ildefonso',
+  'Cervecería',
+  'Campamento Pailaviri',
+  'Manquiri',
+  'Calvario',
+  'San Cristóbal',
+  'San Roque',
+  'San Lorenzo',
+  'Mercado Central',
+  'Alto de la Luna',
+  'Lomas de la Vega',
+  'Villa Fátima',
+  'Villa Banzer',
+  'Santa Bárbara',
+  'Ciudadela',
+  'Universitaria',
+  'Villa Huanuni',
+  'Chiripujio',
+  'Porco',
+  'Bolívar',
+  'Simón Bolívar',
+  '23 de Marzo',
+  'Magisterio',
+  'Ferroviaria',
+  'Mineros San Juan',
+  'Jaime Paz Zamora',
+  'Villa Fátima Norte',
+  'Villa Fátima Sud',
+  'Villa Armonía',
+  'Villa Rosario',
+  'Valle Hermoso',
+  '4 de Julio',
+  'Barrio Minero',
+  'Barrio Cívico',
+  'Barrio Petrolero',
+  'Zona Norte',
+  'Zona Sud',
+  'Zona Este',
+  'Zona Oeste',
+  'Otra'
+]
+
 // Errores de validación
 const errores = ref({
   ci: '',
   telefono: '',
-  zona: ''
+  celularReferencia: ''
 })
+
+// Computed para filtrar zonas
+const zonasFiltradas = computed(() => {
+  if (!busquedaZona.value) {
+    return zonasDisponibles
+  }
+  const busqueda = busquedaZona.value.toLowerCase()
+  return zonasDisponibles.filter(zona => 
+    zona.toLowerCase().includes(busqueda)
+  )
+})
+
+// Funciones del buscador de zonas
+const seleccionarZona = (zona) => {
+  formData.value.zona = zona
+  busquedaZona.value = zona
+  mostrarListaZonas.value = false
+}
+
+const ocultarListaZonas = () => {
+  setTimeout(() => {
+    mostrarListaZonas.value = false
+  }, 200)
+}
 
 // Cargar empresas disponibles al montar el componente
 onMounted(async () => {
@@ -369,28 +478,33 @@ const validarCelular = () => {
   return true
 }
 
-const validarZona = () => {
-  const zona = formData.value.zona
-  if (!zona) {
-    errores.value.zona = ''
+const validarCelularReferencia = () => {
+  const celularRef = formData.value.celularReferencia
+  
+  // Si está vacío, no validar (es opcional)
+  if (!celularRef || celularRef.trim() === '') {
+    errores.value.celularReferencia = ''
     return true
   }
   
-  if (zona.trim().length < 3) {
-    errores.value.zona = 'La zona debe tener al menos 3 caracteres'
+  // Formato Bolivia: 8 dígitos, inicia con 6 o 7
+  const regexCelular = /^[67]\d{7}$/
+  
+  if (!regexCelular.test(celularRef)) {
+    errores.value.celularReferencia = 'Debe ser 8 dígitos e iniciar con 6 o 7'
     return false
   }
   
-  errores.value.zona = ''
+  errores.value.celularReferencia = ''
   return true
 }
 
 const validarFormulario = () => {
   const ciValida = validarCI()
   const celularValido = validarCelular()
-  const zonaValida = validarZona()
+  const celularRefValido = validarCelularReferencia()
   
-  return ciValida && celularValido && zonaValida
+  return ciValida && celularValido && celularRefValido
 }
 
 const enviarFormulario = async () => {
@@ -652,6 +766,63 @@ const confirmarYDescargar = async () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+}
+
+.zona-group {
+  position: relative;
+}
+
+.buscador-zona {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #E0E0E0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.buscador-zona:focus {
+  outline: none;
+  border-color: #6B9080;
+  box-shadow: 0 0 0 3px rgba(107, 144, 128, 0.1);
+}
+
+.lista-zonas {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  background: white;
+  border: 2px solid #6B9080;
+  border-radius: 8px;
+  margin-top: 5px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.zona-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.zona-item:last-child {
+  border-bottom: none;
+}
+
+.zona-item:hover {
+  background-color: #6B9080;
+  color: white;
+}
+
+.zona-no-encontrada {
+  padding: 12px 15px;
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
 }
 
 .seccion-referencia {

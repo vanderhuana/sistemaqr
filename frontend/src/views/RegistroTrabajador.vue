@@ -68,7 +68,6 @@
                 <option value="Recursos Humanos">Recursos Humanos</option>
                 <option value="Ventas">Ventas</option>
                 <option value="Atención al Cliente">Atención al Cliente</option>
-                <option value="Otro">Otro</option>
               </select>
             </div>
           </div>
@@ -101,19 +100,29 @@
             </div>
           </div>
 
-          <div class="form-group">
+          <div class="form-group zona-group">
             <label>Zona:</label>
             <input 
-              v-model="formData.zona" 
+              v-model="busquedaZona" 
               type="text" 
-              placeholder="Tu zona de residencia"
-              @input="validarZona"
-              minlength="3"
-              class="form-control"
-              :class="{ 'input-error': errores.zona }"
+              placeholder="Buscar zona de residencia..."
+              class="buscador-zona"
+              @focus="mostrarListaZonas = true"
+              @input="mostrarListaZonas = true"
             />
-            <span v-if="errores.zona" class="mensaje-error">{{ errores.zona }}</span>
-            <span v-else class="mensaje-ayuda">Mínimo 3 caracteres</span>
+            <div v-if="mostrarListaZonas && zonasFiltradas.length > 0" class="lista-zonas">
+              <div 
+                v-for="zona in zonasFiltradas" 
+                :key="zona" 
+                class="zona-item"
+                @click="seleccionarZona(zona)"
+              >
+                {{ zona }}
+              </div>
+            </div>
+            <div v-if="mostrarListaZonas && busquedaZona && zonasFiltradas.length === 0" class="zona-no-encontrada">
+              No se encontró la zona "{{ busquedaZona }}"
+            </div>
           </div>
 
           <div class="form-row">
@@ -132,7 +141,6 @@
                 <option value="">Seleccionar</option>
                 <option value="M">Masculino</option>
                 <option value="F">Femenino</option>
-                <option value="Otro">Otro</option>
               </select>
             </div>
           </div>
@@ -247,9 +255,50 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { trabajadorService } from '../services/api'
 import { generarCredencialPDF } from '../utils/credencialGenerator'
+
+const busquedaZona = ref('')
+const mostrarListaZonas = ref(false)
+
+const zonasDisponibles = [
+  'Plan 40', 'Las Lecherías', 'Ciudad Satélite', 'La Sebastiana', 'Villa Imperial',
+  'San Clemente', 'Villa Copacabana', 'Kantutani', 'Manquiri', 'El Calvario',
+  'Villa Rosario', 'Villa Fátima', 'San Juan de Dios', 'Villa Concepción', 'Villa Betania',
+  'El Carmen', 'La Bombilla', 'Santa Bárbara', 'Villa Huanuni', 'Alto de la Alianza',
+  'Barrio Minero', 'El Minero', 'Villa Copacabana', 'Villa Exaltación', 'Villa Banzer',
+  'Zona Norte', 'Zona Sud', 'Barrio Cívico', 'Centro Histórico', 'Mercado Central',
+  'Villa Petrolera', 'Villa Esperanza', 'Villa Magisterial', 'Villa Busch', 'Villa Cooperativa',
+  'Villa Tunari', 'Villa Bolivar', 'Villa Armonía', 'Villa San Antonio', 'Villa María',
+  'San Cristóbal', 'San Gerardo', 'San Martín', 'San Francisco', 'Santa Rosa',
+  'Santa Vera Cruz', 'Villa San Luis', 'Villa San Pedro', 'Villa Candelaria', 'Villa Dolores',
+  'Barrio Universitario', 'Zona Industrial', 'Parque Industrial', 'Nueva Terminal', 'Villa Litoral',
+  'Villa Florida', 'Villa Vista Alegre', 'Villa Acero', 'Villa Cerro Rico', 'Villa Yungas',
+  'Villa Alto Lima', 'Villa Potosí', 'Villa Sumaj Orcko', 'Villa Corazón de Jesús', 'Villa Grecia',
+  'Villa Ingenio', 'Aeropuerto'
+]
+
+const zonasFiltradas = computed(() => {
+  if (!busquedaZona.value) {
+    return zonasDisponibles
+  }
+  return zonasDisponibles.filter(zona => 
+    zona.toLowerCase().includes(busquedaZona.value.toLowerCase())
+  )
+})
+
+const seleccionarZona = (zona) => {
+  formData.value.zona = zona
+  busquedaZona.value = zona
+  mostrarListaZonas.value = false
+}
+
+const ocultarListaZonas = () => {
+  setTimeout(() => {
+    mostrarListaZonas.value = false
+  }, 200)
+}
 
 const formData = ref({
   nombre: '',
@@ -278,7 +327,7 @@ const trabajadorRegistrado = ref(null)
 const errores = ref({
   ci: '',
   telefono: '',
-  zona: ''
+  celularReferencia: ''
 })
 
 // Funciones de validación
@@ -321,28 +370,33 @@ const validarCelular = () => {
   return true
 }
 
-const validarZona = () => {
-  const zona = formData.value.zona
-  if (!zona) {
-    errores.value.zona = ''
+const validarCelularReferencia = () => {
+  const celularRef = formData.value.celularReferencia
+  
+  // Si está vacío, no validar (es opcional)
+  if (!celularRef || celularRef.trim() === '') {
+    errores.value.celularReferencia = ''
     return true
   }
   
-  if (zona.trim().length < 3) {
-    errores.value.zona = 'La zona debe tener al menos 3 caracteres'
+  // Formato Bolivia: 8 dígitos, inicia con 6 o 7
+  const regexCelular = /^[67]\d{7}$/
+  
+  if (!regexCelular.test(celularRef)) {
+    errores.value.celularReferencia = 'Debe ser 8 dígitos e iniciar con 6 o 7'
     return false
   }
   
-  errores.value.zona = ''
+  errores.value.celularReferencia = ''
   return true
 }
 
 const validarFormulario = () => {
   const ciValida = validarCI()
   const celularValido = validarCelular()
-  const zonaValida = validarZona()
+  const celularRefValido = validarCelularReferencia()
   
-  return ciValida && celularValido && zonaValida
+  return ciValida && celularValido && celularRefValido
 }
 
 const enviarFormulario = async () => {
@@ -585,6 +639,63 @@ const confirmarYDescargar = async () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
+}
+
+.zona-group {
+  position: relative;
+}
+
+.buscador-zona {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #E0E0E0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.buscador-zona:focus {
+  outline: none;
+  border-color: #6B9080;
+  box-shadow: 0 0 0 3px rgba(107, 144, 128, 0.1);
+}
+
+.lista-zonas {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  background: white;
+  border: 2px solid #6B9080;
+  border-radius: 8px;
+  margin-top: 5px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.zona-item {
+  padding: 12px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.zona-item:last-child {
+  border-bottom: none;
+}
+
+.zona-item:hover {
+  background-color: #6B9080;
+  color: white;
+}
+
+.zona-no-encontrada {
+  padding: 12px 15px;
+  color: #6c757d;
+  font-style: italic;
+  text-align: center;
 }
 
 .seccion-referencia {
