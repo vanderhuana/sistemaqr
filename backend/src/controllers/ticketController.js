@@ -608,11 +608,11 @@ const generarLoteEntradas = async (req, res) => {
   try {
     const { cantidad, tipo = 'entrada_general' } = req.body;
     
-    // Validar cantidad
-    if (!cantidad || cantidad < 1 || cantidad > 1000) {
+    // Validar cantidad - aumentado a 5000
+    if (!cantidad || cantidad < 1 || cantidad > 5000) {
       return res.status(400).json({
         error: 'Cantidad inválida',
-        message: 'Debes generar entre 1 y 1000 entradas'
+        message: 'Debes generar entre 1 y 5000 entradas'
       });
     }
     
@@ -624,18 +624,18 @@ const generarLoteEntradas = async (req, res) => {
       });
     }
     
-    const entradas = [];
     const fecha = new Date();
+    const baseCount = await Ticket.count();
     
-    // Generar entradas en lote
+    // Preparar datos en batch para inserción masiva
+    const entradasData = [];
     for (let i = 0; i < cantidad; i++) {
       // Generar token único
-      const token = `ENTRY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
+      const token = `ENTRY-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`.toUpperCase();
       
-      // Crear entrada simple
-      const entrada = await Ticket.create({
+      entradasData.push({
         qrCode: token,
-        ticketNumber: `E${String(await Ticket.count() + 1).padStart(6, '0')}`,
+        ticketNumber: `E${String(baseCount + i + 1).padStart(6, '0')}`,
         buyerName: 'Por asignar',
         salePrice: 0,
         quantity: 1,
@@ -649,20 +649,21 @@ const generarLoteEntradas = async (req, res) => {
           generadoPor: req.user.username
         }
       });
-      
-      entradas.push({
-        id: entrada.id,
-        token: entrada.qrCode,
-        numero: entrada.ticketNumber
-      });
-      
-      // Pequeña pausa para evitar tokens duplicados
-      await new Promise(resolve => setTimeout(resolve, 5));
     }
+    
+    // Inserción masiva (mucho más rápido)
+    const entradas = await Ticket.bulkCreate(entradasData);
+    
+    // Formatear respuesta
+    const entradasFormateadas = entradas.map(entrada => ({
+      id: entrada.id,
+      token: entrada.qrCode,
+      numero: entrada.ticketNumber
+    }));
     
     res.status(201).json({
       message: `${cantidad} entradas generadas exitosamente`,
-      entradas: entradas,
+      entradas: entradasFormateadas,
       resumen: {
         total: cantidad,
         tipo: tipo,

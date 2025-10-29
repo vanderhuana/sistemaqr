@@ -20,11 +20,11 @@
           v-model.number="cantidad"
           :disabled="generando"
           min="1"
-          max="1000"
+          max="5000"
           class="input-cantidad"
           placeholder="Ej: 50"
         />
-        <small>Mínimo: 1 | Máximo: 1000</small>
+        <small>Mínimo: 1 | Máximo: 5000</small>
       </div>
 
       <div class="form-group">
@@ -44,7 +44,7 @@
 
       <button 
         @click="generarEntradas" 
-        :disabled="generando || cantidad < 1 || cantidad > 1000"
+        :disabled="generando || cantidad < 1 || cantidad > 5000"
         class="btn-generar"
       >
         <span v-if="!generando">🎫 Generar Entradas</span>
@@ -52,10 +52,13 @@
       </button>
     </div>
 
-    <!-- Loading -->
+    <!-- Loading con progreso -->
     <div v-if="generando" class="loading">
       <div class="spinner"></div>
-      <p>Generando {{ cantidad }} entradas...</p>
+      <p>{{ progresoMensaje }}</p>
+      <div v-if="progresoActual > 0" class="barra-progreso">
+        <div class="barra-progreso-fill" :style="{ width: progresoActual + '%' }"></div>
+      </div>
     </div>
 
     <!-- Resultado: Entradas generadas -->
@@ -65,6 +68,12 @@
         <button @click="descargarPDF" class="btn-descargar">
           📄 Descargar PDF con QRs
         </button>
+      </div>
+
+      <!-- Advertencia para lotes grandes -->
+      <div v-if="entradas.length > 2000" class="alerta warning">
+        ⚠️ ADVERTENCIA: Generar PDF con {{ entradas.length }} QRs puede tomar varios minutos y consumir mucha memoria. 
+        Se recomienda cerrar otras pestañas del navegador.
       </div>
 
       <!-- Preview de QRs -->
@@ -99,6 +108,8 @@ const tipo = ref('entrada_general');
 const generando = ref(false);
 const entradas = ref([]);
 const alerta = ref({ mensaje: '', tipo: '' });
+const progresoMensaje = ref('');
+const progresoActual = ref(0);
 
 const mostrarAlerta = (mensaje, tipo) => {
   alerta.value = { mensaje, tipo };
@@ -108,21 +119,27 @@ const mostrarAlerta = (mensaje, tipo) => {
 };
 
 const generarEntradas = async () => {
-  if (cantidad.value < 1 || cantidad.value > 1000) {
-    mostrarAlerta('La cantidad debe estar entre 1 y 1000', 'error');
+  if (cantidad.value < 1 || cantidad.value > 5000) {
+    mostrarAlerta('La cantidad debe estar entre 1 y 5000', 'error');
     return;
   }
 
   generando.value = true;
   entradas.value = [];
+  progresoActual.value = 0;
+  progresoMensaje.value = `Generando ${cantidad.value} entradas en el servidor...`;
 
   try {
     console.log('🎫 Generando entradas...', { cantidad: cantidad.value, tipo: tipo.value });
     
+    progresoActual.value = 10;
     const response = await api.post('/api/tickets/generar-lote', {
       cantidad: cantidad.value,
       tipo: tipo.value
     });
+
+    progresoActual.value = 50;
+    progresoMensaje.value = 'Entradas generadas, creando códigos QR...';
 
     console.log('📦 Respuesta del servidor:', response);
     console.log('📊 Datos recibidos:', response.data);
@@ -131,11 +148,16 @@ const generarEntradas = async () => {
     if (response.data && response.data.entradas && Array.isArray(response.data.entradas)) {
       entradas.value = response.data.entradas;
       console.log('✅ Entradas asignadas:', entradas.value.length);
-      mostrarAlerta(`✅ ${entradas.value.length} entradas generadas exitosamente`, 'success');
+      
+      progresoActual.value = 60;
+      progresoMensaje.value = 'Generando vista previa de QRs...';
 
-      // Generar QRs en canvas
+      // Generar QRs en canvas (solo preview)
       await nextTick();
       await generarQRsCanvas();
+      
+      progresoActual.value = 100;
+      mostrarAlerta(`✅ ${entradas.value.length} entradas generadas exitosamente`, 'success');
     } else {
       console.error('❌ Respuesta del backend sin entradas:', response.data);
       console.error('❌ Estructura recibida:', JSON.stringify(response.data, null, 2));
@@ -153,6 +175,8 @@ const generarEntradas = async () => {
     );
   } finally {
     generando.value = false;
+    progresoActual.value = 0;
+    progresoMensaje.value = '';
   }
 };
 
@@ -171,9 +195,9 @@ const generarQRsCanvas = async () => {
       const canvas = document.getElementById('qr-' + entrada.id);
       if (canvas) {
         await QRCode.toCanvas(canvas, entrada.token, {
-          width: 180, // Aumentado para mejor vista previa
-          margin: 2, // Margen de 2 módulos
-          errorCorrectionLevel: 'H', // Nivel alto de corrección
+          width: 120, // Reducido para vista previa más compacta
+          margin: 1, // Margen reducido a 1 módulo
+          errorCorrectionLevel: 'M', // Nivel medio de corrección (15%)
           color: {
             dark: '#000000',
             light: '#FFFFFF'
@@ -194,6 +218,10 @@ const descargarPDF = async () => {
   }
 
   try {
+    generando.value = true;
+    progresoActual.value = 0;
+    progresoMensaje.value = 'Preparando PDF...';
+
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -203,19 +231,33 @@ const descargarPDF = async () => {
     const pageWidth = 210; // A4 width en mm
     const pageHeight = 297; // A4 height en mm
     const margin = 10;
-    const qrSize = 40; // Tamaño del QR en mm (aumentado a 40mm para mejor lectura)
-    const cols = 4; // QRs por fila (4 columnas para dar más espacio)
-    const rows = 6; // QRs por página (6 filas)
-    const qrsPerPage = cols * rows; // 24 QRs por página
+    const qrSize = 30; // Tamaño del QR reducido a 30mm (más compacto)
+    const cols = 5; // 5 QRs por fila para aprovechar mejor el espacio
+    const rows = 8; // 8 filas para más QRs por página
+    const qrsPerPage = cols * rows; // 40 QRs por página
     
     const cellWidth = (pageWidth - 2 * margin) / cols;
     const cellHeight = (pageHeight - 2 * margin) / rows;
 
     let pageNum = 0;
     
+    // Procesar en lotes pequeños para no sobrecargar memoria
+    const batchSize = 10; // Procesar 10 QRs a la vez
+    
     for (let i = 0; i < entradas.value.length; i++) {
       const entrada = entradas.value[i];
       const posInPage = i % qrsPerPage;
+      
+      // Actualizar progreso
+      if (i % batchSize === 0) {
+        const progreso = Math.floor((i / entradas.value.length) * 90) + 10;
+        progresoActual.value = progreso;
+        progresoMensaje.value = `Generando PDF... ${i + 1}/${entradas.value.length} QRs (Página ${Math.floor(i / qrsPerPage) + 1})`;
+        
+        // Pequeña pausa cada lote para liberar memoria y actualizar UI
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await nextTick();
+      }
       
       // Nueva página si es necesario
       if (posInPage === 0 && i > 0) {
@@ -229,57 +271,75 @@ const descargarPDF = async () => {
       const x = margin + col * cellWidth;
       const y = margin + row * cellHeight;
 
-      // Generar QR como data URL con máxima calidad
-      const qrDataUrl = await QRCode.toDataURL(entrada.token, {
-        width: 512, // Alta resolución para mejor lectura (512px)
-        margin: 2, // Margen de 2 módulos para mejor detección
-        errorCorrectionLevel: 'H', // Nivel alto (30% corrección) para máxima robustez
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
+      try {
+        // Generar QR con configuración optimizada para memoria
+        const qrDataUrl = await QRCode.toDataURL(entrada.token, {
+          width: 256, // Reducido de 384 a 256px para menos memoria
+          margin: 1,
+          errorCorrectionLevel: 'M',
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        });
+
+        // Agregar QR al PDF
+        const qrX = x + (cellWidth - qrSize) / 2;
+        const qrY = y + 2;
+        pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+
+        // Agregar número de entrada (más cerca del QR)
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(entrada.numero, x + cellWidth / 2, y + qrSize + 3.5, {
+          align: 'center'
+        });
+
+        // Líneas de corte (punteadas) - cubren todo el perímetro
+        pdf.setLineDash([2, 2]);
+        pdf.setDrawColor(150, 150, 150);
+        
+        // Línea horizontal superior
+        if (row === 0) {
+          pdf.line(x, y, x + cellWidth, y);
         }
-      });
-
-      // Agregar QR al PDF
-      const qrX = x + (cellWidth - qrSize) / 2;
-      const qrY = y + 2;
-      pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
-
-      // Agregar número de entrada
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(entrada.numero, x + cellWidth / 2, y + qrSize + 6, {
-        align: 'center'
-      });
-
-      // Líneas de corte (punteadas)
-      pdf.setLineDash([1, 1]);
-      pdf.setDrawColor(200, 200, 200);
-      
-      // Línea horizontal superior
-      if (row === 0) {
-        pdf.line(x, y, x + cellWidth, y);
+        // Línea horizontal inferior
+        pdf.line(x, y + cellHeight, x + cellWidth, y + cellHeight);
+        
+        // Línea vertical izquierda
+        if (col === 0) {
+          pdf.line(x, y, x, y + cellHeight);
+        }
+        // Línea vertical derecha
+        pdf.line(x + cellWidth, y, x + cellWidth, y + cellHeight);
+        
+      } catch (qrError) {
+        console.error(`Error generando QR ${i}:`, qrError);
+        // Continuar con el siguiente en caso de error
       }
-      // Línea horizontal inferior
-      pdf.line(x, y + cellHeight, x + cellWidth, y + cellHeight);
-      
-      // Línea vertical izquierda
-      if (col === 0) {
-        pdf.line(x, y, x, y + cellHeight);
-      }
-      // Línea vertical derecha
-      pdf.line(x + cellWidth, y, x + cellWidth, y + cellHeight);
     }
+
+    progresoActual.value = 95;
+    progresoMensaje.value = 'Guardando PDF...';
+    
+    // Pequeña pausa antes de guardar
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Guardar PDF
     const fecha = new Date().toISOString().split('T')[0];
     pdf.save(`entradas-qr-${fecha}-${entradas.value.length}.pdf`);
     
+    progresoActual.value = 100;
+    
     mostrarAlerta('✅ PDF descargado exitosamente', 'success');
 
   } catch (error) {
     console.error('Error generando PDF:', error);
-    mostrarAlerta('❌ Error al generar PDF', 'error');
+    mostrarAlerta('Error al generar el PDF', 'error');
+  } finally {
+    generando.value = false;
+    progresoActual.value = 0;
+    progresoMensaje.value = '';
   }
 };
 </script>
@@ -340,6 +400,13 @@ const descargarPDF = async () => {
   background: #F8D7DA;
   color: #721C24;
   border: 2px solid #dc3545;
+}
+
+.alerta.warning {
+  background: #FFF3CD;
+  color: #856404;
+  border: 2px solid #ffc107;
+  margin: 15px 0;
 }
 
 .form-generacion {
@@ -438,6 +505,23 @@ const descargarPDF = async () => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.barra-progreso {
+  width: 100%;
+  max-width: 400px;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 15px auto 0;
+}
+
+.barra-progreso-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #8BC34A);
+  transition: width 0.3s ease;
+  border-radius: 10px;
 }
 
 .resultado {

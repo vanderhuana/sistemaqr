@@ -25,7 +25,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 120000, // 2 minutos para generación masiva de QRs
   headers: {
     'Content-Type': 'application/json',
   },

@@ -588,11 +588,11 @@ const stopScanner = () => {
 const startScanning = () => {
   if (scanInterval.value) return
   
-  // Reducido a 200ms para reconocimiento más rápido
+  // Escanear cada 150ms para detección más rápida y precisa
   scanInterval.value = setInterval(() => {
     if (!scannerActive.value || processingQR.value) return
     captureAndDecodeQR()
-  }, 200)
+  }, 150)
 }
 
 const captureAndDecodeQR = async () => {
@@ -604,29 +604,23 @@ const captureAndDecodeQR = async () => {
     
     const context = canvas.getContext('2d', { willReadFrequently: true })
     
-    // Optimización: Escanear solo el área central (80% del frame)
-    // Esto reduce el área de procesamiento y aumenta la velocidad
-    const scanWidth = Math.floor(video.videoWidth * 0.8)
-    const scanHeight = Math.floor(video.videoHeight * 0.8)
-    const offsetX = Math.floor((video.videoWidth - scanWidth) / 2)
-    const offsetY = Math.floor((video.videoHeight - scanHeight) / 2)
+    // Usar TODA el área del video para mejor detección
+    // Esto aumenta las posibilidades de detectar el QR
+    const scanWidth = video.videoWidth
+    const scanHeight = video.videoHeight
     
     canvas.width = scanWidth
     canvas.height = scanHeight
     
-    // Dibujar solo el área central del video
-    context.drawImage(
-      video,
-      offsetX, offsetY, scanWidth, scanHeight, // área fuente (centro del video)
-      0, 0, scanWidth, scanHeight // área destino (todo el canvas)
-    )
+    // Dibujar el video completo en el canvas
+    context.drawImage(video, 0, 0, scanWidth, scanHeight)
     
     // Obtener datos de imagen
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
     
-    // Decodificar QR usando jsQR con opciones optimizadas
+    // Decodificar QR usando jsQR con opciones optimizadas para mejor precisión
     const qrResult = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: 'dontInvert' // Mejora la velocidad al no intentar inversión de colores
+      inversionAttempts: 'attemptBoth' // Intentar con inversión de colores para mejor detección
     })
     
     if (qrResult && qrResult.data) {
