@@ -1028,6 +1028,10 @@ const cerrarModalDescarga = () => {
 
 /* Tablets y dispositivos medianos */
 @media (max-width: 768px) {
+  .registro-participante {
+    padding: 0;
+  }
+
   .header-feipobol {
     padding: 15px 10px;
   }
@@ -1045,14 +1049,21 @@ const cerrarModalDescarga = () => {
 
   .header-text h1 {
     font-size: 1.8rem;
+    line-height: 1.3;
   }
 
   .header-text p {
     font-size: 0.85rem;
   }
 
+  .contenido-formulario {
+    padding: 15px 10px;
+    grid-template-columns: 1fr !important;
+  }
+
   .formulario-card {
     padding: 20px 15px;
+    border-radius: 15px;
   }
 
   .titulo-formulario {
@@ -1069,6 +1080,10 @@ const cerrarModalDescarga = () => {
     margin-bottom: 15px;
   }
 
+  .form-group label {
+    font-size: 0.9rem;
+  }
+
   .form-control, .buscador-zona, select {
     padding: 10px 12px;
     font-size: 0.95rem;
@@ -1078,6 +1093,15 @@ const cerrarModalDescarga = () => {
     padding: 14px 25px;
     font-size: 1rem;
     width: 100%;
+  }
+
+  .lista-zonas {
+    max-height: 200px;
+  }
+
+  .zona-item {
+    padding: 10px 12px;
+    font-size: 0.9rem;
   }
   
   .modal-confirmacion {
@@ -1131,6 +1155,7 @@ const cerrarModalDescarga = () => {
 
   .header-text h1 {
     font-size: 1.5rem;
+    line-height: 1.3;
   }
 
   .header-text p {
@@ -1138,7 +1163,8 @@ const cerrarModalDescarga = () => {
   }
 
   .contenido-formulario {
-    padding: 10px;
+    padding: 10px 5px;
+    grid-template-columns: 1fr !important;
   }
 
   .formulario-card {
@@ -1150,6 +1176,11 @@ const cerrarModalDescarga = () => {
     font-size: 1.1rem;
     margin-bottom: 15px;
     line-height: 1.3;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
   }
 
   .form-group {
@@ -1226,6 +1257,7 @@ const cerrarModalDescarga = () => {
   .btn-actualizar, .btn-confirmar {
     padding: 10px 15px;
     font-size: 0.9rem;
+    width: 100%;
   }
 
   .seccion-referencia {
@@ -1244,16 +1276,58 @@ const cerrarModalDescarga = () => {
   .text-warning {
     font-size: 0.8rem;
   }
+
+  .notas-importante {
+    padding: 12px;
+    font-size: 0.85rem;
+  }
+
+  .notas-importante p {
+    font-size: 0.8rem;
+  }
 }
 
 /* Móviles pequeños */
 @media (max-width: 360px) {
+  .header-feipobol {
+    padding: 10px 5px;
+  }
+
+  .logo-img {
+    width: 45px;
+    height: 45px;
+  }
+
   .header-text h1 {
     font-size: 1.3rem;
+    line-height: 1.2;
+  }
+
+  .header-text p {
+    font-size: 0.7rem;
+  }
+
+  .contenido-formulario {
+    padding: 8px 5px;
+  }
+
+  .formulario-card {
+    padding: 12px 8px;
+    border-radius: 10px;
   }
 
   .titulo-formulario {
     font-size: 1rem;
+    margin-bottom: 12px;
+  }
+
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+    margin-bottom: 5px;
   }
 
   .form-control, .buscador-zona, select {
@@ -1266,6 +1340,15 @@ const cerrarModalDescarga = () => {
     font-size: 0.9rem;
   }
 
+  .lista-zonas {
+    max-height: 150px;
+  }
+
+  .zona-item {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+
   .modal-header {
     padding: 15px 10px;
   }
@@ -1274,12 +1357,50 @@ const cerrarModalDescarga = () => {
     padding: 15px 10px;
   }
 
+  .modal-header h2 {
+    font-size: 1rem;
+  }
+
+  .icono-exito {
+    font-size: 2rem;
+  }
+
   .datos-confirmacion {
     padding: 12px;
   }
 
   .datos-confirmacion p {
     font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .pregunta-confirmacion {
+    font-size: 0.9rem;
+  }
+
+  .btn-actualizar, .btn-confirmar {
+    padding: 9px 12px;
+    font-size: 0.85rem;
+  }
+
+  .seccion-referencia {
+    padding: 10px;
+  }
+
+  .seccion-referencia h3 {
+    font-size: 0.9rem;
+  }
+
+  .notas-importante {
+    padding: 10px;
+  }
+
+  .notas-importante p {
+    font-size: 0.75rem;
+  }
+
+  .mensaje-error, .mensaje-ayuda {
+    font-size: 0.75rem;
   }
 }
 
