@@ -1,4 +1,5 @@
 import html2canvas from 'html2canvas'
+import QRCode from 'qrcode'
 
 /**
  * Genera una credencial en formato JPEG con el diseño de FEIPOBOL
@@ -8,8 +9,20 @@ import html2canvas from 'html2canvas'
  * @param {string} tipoCredencial - 'PARTICIPANTE' o 'TRABAJADOR'
  */
 export async function generarCredencialPDF(participante, datosFormulario, empresaNombre = '', tipoCredencial = 'PARTICIPANTE') {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
+      // Generar QR localmente usando la librería qrcode
+      const qrData = participante.token || participante.qrCode || participante.id || `${datosFormulario.nombre}-${datosFormulario.ci}`
+      const qrDataUrl = await QRCode.toDataURL(qrData, {
+        width: 600,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'H'
+      })
+
       // Crear contenedor temporal para la credencial
       const container = document.createElement('div')
       container.style.position = 'fixed'
@@ -20,11 +33,6 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
       // Obtener URL de la imagen de fondo y del logo
       const registroImg = new URL('../assets/registro.png', import.meta.url).href
       const logoImg = new URL('../assets/logo02.png', import.meta.url).href
-
-      // Generar URL del QR con mayor tamaño para mejor lectura
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(
-        participante.token || participante.qrCode || participante.id
-      )}`
 
       // Fechas específicas de FEIPOBOL 2025
       const fechaInicio = new Date(2025, 0, 13) // 13 de enero 2025
@@ -154,7 +162,7 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
             padding: 15px;
             box-sizing: border-box;
           ">
-            <img src="${qrUrl}" style="width: 100%; height: 100%; border-radius: 12px; display: block;" />
+            <img src="${qrDataUrl}" style="width: 100%; height: 100%; border-radius: 12px; display: block;" />
           </div>
 
           <!-- Nota inferior -->
@@ -185,47 +193,36 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
         // Dibujar imagen de fondo
         ctx.drawImage(fondoImg, 0, 0, 1080, 1920)
         
-        // Esperar a que cargue el QR
-        const qrImg = container.querySelector('img')
-        qrImg.crossOrigin = 'anonymous'
-        
-        const finalizarPDF = () => {
-          setTimeout(() => {
-            html2canvas(container.querySelector('#credencial-pdf'), {
-              scale: 2,
-              useCORS: true,
-              allowTaint: true,
-              backgroundColor: null
-            }).then(contentCanvas => {
-              // Combinar fondo + contenido
-              ctx.drawImage(contentCanvas, 0, 0, 1080, 1920)
-              
-              // Convertir canvas a imagen JPEG con alta calidad
-              const imgData = canvas.toDataURL('image/jpeg', 0.95)
-              
-              // Crear enlace de descarga para JPEG
-              const link = document.createElement('a')
-              const nombreArchivo = `Credencial-${tipoCredencial}-${datosFormulario.nombre}-${datosFormulario.apellido}.jpg`
-              link.download = nombreArchivo
-              link.href = imgData
-              link.click()
+        // El QR ya está como Data URL, no necesita carga adicional
+        // Esperar un momento para que el DOM se actualice
+        setTimeout(() => {
+          html2canvas(container.querySelector('#credencial-pdf'), {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: null
+          }).then(contentCanvas => {
+            // Combinar fondo + contenido
+            ctx.drawImage(contentCanvas, 0, 0, 1080, 1920)
+            
+            // Convertir canvas a imagen JPEG con alta calidad
+            const imgData = canvas.toDataURL('image/jpeg', 0.95)
+            
+            // Crear enlace de descarga para JPEG
+            const link = document.createElement('a')
+            const nombreArchivo = `Credencial-${tipoCredencial}-${datosFormulario.nombre}-${datosFormulario.apellido}.jpg`
+            link.download = nombreArchivo
+            link.href = imgData
+            link.click()
 
-              // Limpiar
-              document.body.removeChild(container)
-              resolve()
-            }).catch(error => {
-              document.body.removeChild(container)
-              reject(error)
-            })
-          }, 800)
-        }
-        
-        if (qrImg.complete) {
-          finalizarPDF()
-        } else {
-          qrImg.onload = finalizarPDF
-          qrImg.onerror = finalizarPDF
-        }
+            // Limpiar
+            document.body.removeChild(container)
+            resolve()
+          }).catch(error => {
+            document.body.removeChild(container)
+            reject(error)
+          })
+        }, 500)
       }
       
       fondoImg.onerror = () => {
