@@ -19,12 +19,14 @@ COPY . .
 # Crear directorio para uploads si no existe
 RUN mkdir -p uploads
 
-# Exponer puerto
+# Exponer puertos HTTP y HTTPS
 EXPOSE 3000
+EXPOSE 3443
 
 # Variables de entorno por defecto (se sobrescriben en producción)
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HTTPS_PORT=3443
 
 # Comando de inicio
 CMD ["node", "server.js"]

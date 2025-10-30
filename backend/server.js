@@ -36,6 +36,7 @@ app.use(cors({
       'http://192.168.1.3:8080',
       'http://192.168.1.3:3000',
       'https://localhost:5173',
+      'https://localhost:8443',
       'https://192.168.1.3:5173',
       'https://192.168.1.3:3443',
       'http://142.93.26.33:8080',
@@ -43,7 +44,13 @@ app.use(cors({
       'http://fepp.online',
       'https://fepp.online',
       'http://www.fepp.online',
-      'https://www.fepp.online'
+      'https://www.fepp.online',
+      // Red local - tu máquina Windows
+      'http://192.168.1.4:8080',
+      'http://192.168.1.4:5173',
+      'https://192.168.1.4:5173',
+      'https://192.168.1.4:3443',
+      'https://192.168.1.4:8443'
     ];
 
     // Si se definió FRONTEND_URL en env, añádelo (normalizado)
@@ -228,7 +235,7 @@ const startServer = async () => {
   http.createServer(app).listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Servidor HTTP corriendo en puerto ${PORT}`);
     console.log(`🌐 Local: http://localhost:${PORT}`);
-    console.log(`🌐 Red: http://192.168.1.3:${PORT}`);
+    console.log(`🌐 Red: http://192.168.1.4:${PORT}`);
   });
   
   // Iniciar servidor HTTPS (con SSL) si hay certificados
@@ -236,8 +243,8 @@ const startServer = async () => {
     https.createServer(sslOptions, app).listen(HTTPS_PORT, '0.0.0.0', () => {
       console.log(`🔒 Servidor HTTPS corriendo en puerto ${HTTPS_PORT}`);
       console.log(`🌐 Local: https://localhost:${HTTPS_PORT}`);
-      console.log(`🌐 Red: https://192.168.1.3:${HTTPS_PORT}`);
-      console.log(`� Dispositivos móviles pueden acceder a: https://192.168.1.3:${HTTPS_PORT}`);
+      console.log(`🌐 Red: https://192.168.1.4:${HTTPS_PORT}`);
+      console.log(`📱 Dispositivos móviles pueden acceder a: https://192.168.1.4:${HTTPS_PORT}`);
       console.log(`⚠️  Los dispositivos verán advertencia de certificado - aceptar para continuar`);
     });
   } else {

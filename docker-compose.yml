@@ -35,9 +35,11 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3000"  # Puerto externo 3001 mapeado al interno 3000
+      - "3443:3443"  # Puerto HTTPS para cámara móvil
     environment:
       NODE_ENV: production
       PORT: 3000
+      HTTPS_PORT: 3443
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-sisqr6}
@@ -67,7 +69,8 @@ services:
     container_name: sisqr6-frontend
     restart: unless-stopped
     ports:
-      - "8080:80"  # Puerto externo 8080 mapeado al interno 80
+      - "8080:80"   # Puerto HTTP
+      - "8443:443"  # Puerto HTTPS para cámara
     depends_on:
       - backend
     networks:
