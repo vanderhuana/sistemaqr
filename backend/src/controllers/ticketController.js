@@ -627,6 +627,13 @@ const generarLoteEntradas = async (req, res) => {
     const fecha = new Date();
     const baseCount = await Ticket.count();
     
+    // Obtener evento activo por defecto
+    const { Event } = require('../models');
+    const eventoActivo = await Event.findOne({
+      where: { isActive: true },
+      order: [['startDate', 'DESC']]
+    });
+    
     // Preparar datos en batch para inserción masiva
     const entradasData = [];
     for (let i = 0; i < cantidad; i++) {
@@ -643,6 +650,7 @@ const generarLoteEntradas = async (req, res) => {
         status: 'active',
         saleDate: fecha,
         sellerId: req.user.id,
+        eventId: eventoActivo?.id || null, // Asociar al evento activo
         metadata: {
           tipo: tipo,
           generacionMasiva: true,

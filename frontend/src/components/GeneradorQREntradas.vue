@@ -231,13 +231,18 @@ const descargarPDF = async () => {
     const pageWidth = 210; // A4 width en mm
     const pageHeight = 297; // A4 height en mm
     const margin = 10;
-    const qrSize = 30; // Tamaño del QR reducido a 30mm (más compacto)
-    const cols = 5; // 5 QRs por fila para aprovechar mejor el espacio
-    const rows = 8; // 8 filas para más QRs por página
-    const qrsPerPage = cols * rows; // 40 QRs por página
     
-    const cellWidth = (pageWidth - 2 * margin) / cols;
-    const cellHeight = (pageHeight - 2 * margin) / rows;
+    // Dimensiones del contorno/celda (líneas segmentadas)
+    const cellWidth = 35; // 3.5 cm de ancho
+    const cellHeight = 35; // 3.5 cm de alto
+    
+    // Tamaño del QR (más grande, pero dentro del contorno)
+    const qrSize = 32; // QR de 3.2cm (deja margen dentro del contorno de 3.5x3.5cm)
+    
+    // Calcular cuántos QRs caben por página
+    const cols = Math.floor((pageWidth - 2 * margin) / cellWidth); // ~5 columnas
+    const rows = Math.floor((pageHeight - 2 * margin) / cellHeight); // ~7 filas
+    const qrsPerPage = cols * rows;
 
     let pageNum = 0;
     
@@ -272,9 +277,9 @@ const descargarPDF = async () => {
       const y = margin + row * cellHeight;
 
       try {
-        // Generar QR con configuración optimizada para memoria
+        // Generar QR con configuración optimizada
         const qrDataUrl = await QRCode.toDataURL(entrada.token, {
-          width: 256, // Reducido de 384 a 256px para menos memoria
+          width: 300, // Alta resolución para calidad de impresión
           margin: 1,
           errorCorrectionLevel: 'M',
           color: {
@@ -283,35 +288,26 @@ const descargarPDF = async () => {
           }
         });
 
-        // Agregar QR al PDF
+        // Centrar QR dentro del contorno de 3.5 x 3.5 cm
         const qrX = x + (cellWidth - qrSize) / 2;
-        const qrY = y + 2;
+        const qrY = y + (cellHeight - qrSize) / 2 + 2; // QR más abajo para espacio del número arriba
+        
         pdf.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
 
-        // Agregar número de entrada (más cerca del QR)
+        // Agregar número de entrada ARRIBA del QR
         pdf.setFontSize(8);
         pdf.setFont('helvetica', 'bold');
-        pdf.text(entrada.numero, x + cellWidth / 2, y + qrSize + 3.5, {
+        pdf.text(entrada.numero, x + cellWidth / 2, y + 3, {
           align: 'center'
         });
 
-        // Líneas de corte (punteadas) - cubren todo el perímetro
-        pdf.setLineDash([2, 2]);
-        pdf.setDrawColor(150, 150, 150);
+        // Líneas de corte (punteadas) - contorno de 3.1 x 3.2 cm
+        pdf.setLineDash([1, 1.5]); // Patrón de línea segmentada
+        pdf.setDrawColor(180, 180, 180); // Color gris claro
+        pdf.setLineWidth(0.1); // Línea delgada
         
-        // Línea horizontal superior
-        if (row === 0) {
-          pdf.line(x, y, x + cellWidth, y);
-        }
-        // Línea horizontal inferior
-        pdf.line(x, y + cellHeight, x + cellWidth, y + cellHeight);
-        
-        // Línea vertical izquierda
-        if (col === 0) {
-          pdf.line(x, y, x, y + cellHeight);
-        }
-        // Línea vertical derecha
-        pdf.line(x + cellWidth, y, x + cellWidth, y + cellHeight);
+        // Rectángulo completo del contorno
+        pdf.rect(x, y, cellWidth, cellHeight);
         
       } catch (qrError) {
         console.error(`Error generando QR ${i}:`, qrError);

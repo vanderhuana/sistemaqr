@@ -646,6 +646,13 @@ const esEntradaSimple = (qrCode) => {
 const validateQRCode = async (qrCode) => {
   if (processingQR.value) return
   
+  // Validar que el QR code no esté vacío o undefined
+  if (!qrCode || qrCode.trim() === '') {
+    console.warn('⚠️ QR code vacío o undefined, ignorando...')
+    processingQR.value = false
+    return
+  }
+  
   // Evitar escaneos duplicados del mismo QR en menos de 3 segundos
   const now = Date.now()
   if (lastScannedQR.value === qrCode && (now - lastScanTime.value) < 3000) {
@@ -676,14 +683,49 @@ const validateQRCode = async (qrCode) => {
     
     // 2. Entrada simple (QR físico generado)
     if (esEntradaSimple(qrCode)) {
-      console.log('� Entrada simple detectada:', qrCode)
+      console.log('🎫 Entrada simple detectada:', qrCode)
       await validarEntradaSimpleDirecta(qrCode)
       return
     }
     
-    // 3. Ticket de evento - validar directamente
-    console.log('🎫 Ticket de evento detectado:', qrCode)
-    await validarTicketEvento(qrCode)
+    // 3. QR Externo (no es del sistema) - Mostrar error
+    console.log('❌ QR externo/no reconocido:', qrCode)
+    
+    resultado.value = {
+      success: false,
+      message: 'QR no reconocido',
+      error: 'Este código QR no pertenece al sistema',
+      result: 'error'
+    }
+    mostrarResultado.value = true
+    
+    // Agregar a estadísticas como rechazado
+    estadisticas.value.accesosHoy++
+    estadisticas.value.rechazadosHoy++
+    
+    // Agregar al historial
+    validacionesRecientes.value.unshift({
+      id: Date.now(),
+      fecha: new Date().toISOString(),
+      nombre: 'QR No Reconocido',
+      tipo: 'qr_externo',
+      valida: false,
+      motivo: 'QR externo al sistema'
+    })
+    
+    if (validacionesRecientes.value.length > 10) {
+      validacionesRecientes.value.pop()
+    }
+    
+    setTimeout(() => {
+      processingQR.value = false
+      mostrarResultado.value = false
+      if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
+        startScanning()
+      }
+    }, 3000)
+    
+    return // Importante: detener ejecución aquí
     
   } catch (error) {
     console.error('❌ Error procesando QR:', error)

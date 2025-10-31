@@ -1387,11 +1387,19 @@ const entradasDisponibles = computed(() => {
 
 // Métodos
 const formatearFecha = (fecha) => {
-  return fecha.toLocaleDateString('es-ES', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  })
+  if (!fecha) return 'Fecha no disponible'
+  
+  try {
+    const fechaObj = typeof fecha === 'string' ? new Date(fecha) : fecha
+    return fechaObj.toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+  } catch (error) {
+    console.error('Error formateando fecha:', error)
+    return 'Fecha inválida'
+  }
 }
 
 const formatDateTime = (dateTime) => {
@@ -2446,6 +2454,13 @@ const esEntradaSimple = (qrCode) => {
 const validateQRCode = async (qrCode) => {
   if (processingQR.value) return
   
+  // Validar que el QR code no esté vacío o undefined
+  if (!qrCode || qrCode.trim() === '') {
+    console.warn('⚠️ QR code vacío o undefined, ignorando...')
+    processingQR.value = false
+    return
+  }
+  
   processingQR.value = true
   loadingTicketInfo.value = true
   
@@ -2473,45 +2488,90 @@ const validateQRCode = async (qrCode) => {
       return
     }
     
-    // 3. Ticket de evento con múltiples entradas
-    console.log('🎫 Ticket de evento detectado:', qrCode)
+    // 3. QR de Evento (tickets con múltiples entradas) o QR Externo
+    console.log('🎫 Verificando tipo de QR:', qrCode)
     
-    // Obtener información actual del ticket
-    console.log('🔍 Obteniendo información del ticket:', qrCode)
-    const ticketResponse = await validationService.getTicketInfo(qrCode)
+    // Intentar como ticket de evento solo si parece ser un QR válido de ticket
+    // (no intentar si es claramente un QR externo con formato no reconocido)
+    let esTicketValido = false
     
-    if (ticketResponse.success) {
-      currentTicketInfo.value = ticketResponse.ticket
+    try {
+      console.log('🔍 Consultando información del ticket...')
+      const ticketInfo = await validationService.getTicketInfo(qrCode)
       
-      // Configurar valores por defecto
-      pendingQRCode.value = qrCode
-      selectedPersonCount.value = 1
-      maxPersonsAllowed.value = Math.min(10, ticketResponse.ticket.remainingEntries)
-      
-      // Mostrar modal para seleccionar cuántas personas van a ingresar
-      showPersonCountModal.value = true
-      
-    } else {
-      // Si no se puede obtener info del ticket, proceder directamente con validación
-      console.warn('⚠️ No se pudo obtener info del ticket, procediendo con validación directa')
-      pendingQRCode.value = qrCode
-      selectedPersonCount.value = 1
-      maxPersonsAllowed.value = 10
-      currentTicketInfo.value = null
-      showPersonCountModal.value = true
+      if (ticketInfo && ticketInfo.success && ticketInfo.ticket) {
+        // Es un ticket válido del sistema
+        console.log('✅ Ticket de evento encontrado:', ticketInfo)
+        esTicketValido = true
+        
+        pendingQRCode.value = qrCode
+        currentTicketInfo.value = ticketInfo.ticket
+        maxPersonsAllowed.value = ticketInfo.ticket?.totalEntradas || ticketInfo.ticket?.personCount || 10
+        selectedPersonCount.value = 1
+        loadingTicketInfo.value = false
+        showPersonCountModal.value = true
+        return
+      }
+    } catch (ticketError) {
+      console.log('ℹ️ No es un ticket de evento válido:', ticketError.message)
+      esTicketValido = false
     }
+    
+    // 4. Si llegamos aquí, es un QR externo/no reconocido
+    console.log('❌ QR externo/no reconocido:', qrCode)
+    
+    // Resetear loading
+    loadingTicketInfo.value = false
+    
+    // Mostrar modal de error
+    showValidationResult.value = true
+    lastValidationResult.value = {
+      success: false,
+      message: 'QR no reconocido',
+      error: 'Este código QR no pertenece al sistema',
+      result: 'error'
+    }
+    
+    // Agregar al historial
+    validationHistory.value.unshift({
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      qrCode: qrCode ? qrCode.substring(0, 20) + '...' : 'N/A',
+      name: 'QR No Reconocido',
+      type: 'qr_externo',
+      success: false,
+      reason: 'QR externo al sistema'
+    })
+    
+    if (validationHistory.value.length > 10) {
+      validationHistory.value.pop()
+    }
+    
+    setTimeout(() => {
+      processingQR.value = false
+      showValidationResult.value = false
+      if (wasScanningBeforePause.value && scannerActive.value && !scanInterval.value) {
+        startScanning()
+      }
+    }, 3000)
+    
+    return // Importante: detener ejecución aquí
     
   } catch (error) {
     console.error('❌ Error obteniendo información del ticket:', error)
-    // En caso de error, mostrar modal básico
-    pendingQRCode.value = qrCode
-    selectedPersonCount.value = 1
-    maxPersonsAllowed.value = 10
-    currentTicketInfo.value = null
-    showPersonCountModal.value = true
-  } finally {
+    
+    // Resetear estados
     loadingTicketInfo.value = false
-    processingQR.value = false // Permitir interacción con el modal
+    processingQR.value = false
+    
+    // Mostrar error
+    showValidationResult.value = true
+    lastValidationResult.value = {
+      success: false,
+      message: 'Error al procesar QR',
+      error: error.message || 'Error desconocido',
+      result: 'error'
+    }
   }
 }
 
