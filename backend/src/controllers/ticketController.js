@@ -630,7 +630,7 @@ const generarLoteEntradas = async (req, res) => {
     // Obtener evento activo por defecto
     const { Event } = require('../models');
     const eventoActivo = await Event.findOne({
-      where: { isActive: true },
+      where: { status: 'active' },
       order: [['startDate', 'DESC']]
     });
     
