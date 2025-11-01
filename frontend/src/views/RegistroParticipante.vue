@@ -280,6 +280,27 @@
         @cerrar="cerrarModalDescarga"
       />
 
+      <!-- Modal de Departamentos de Bolivia -->
+      <div v-if="mostrarModalDepartamentos" class="modal-overlay" @click="cerrarModalDepartamentos">
+        <div class="modal-departamentos" @click.stop>
+          <button @click="cerrarModalDepartamentos" class="btn-cerrar-modal">✕</button>
+          <h3>🇧🇴 Selecciona tu Departamento</h3>
+          <p class="descripcion-modal">Ya que seleccionaste "Otra" zona, indícanos de qué departamento de Bolivia eres:</p>
+          
+          <div class="grid-departamentos">
+            <div 
+              v-for="depto in departamentosBolivia" 
+              :key="depto.nombre"
+              class="card-departamento"
+              @click="seleccionarDepartamento(depto.nombre)"
+            >
+              <div class="icono-depto">{{ depto.icono }}</div>
+              <div class="nombre-depto">{{ depto.nombre }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Imagen derecha -->
       <div class="imagen-lado">
         <div class="logo-grande">
@@ -331,6 +352,21 @@ const errorDescarga = ref('')
 // Buscador de zonas
 const busquedaZona = ref('')
 const mostrarListaZonas = ref(false)
+const mostrarModalDepartamentos = ref(false)
+
+// Departamentos de Bolivia
+const departamentosBolivia = [
+  { nombre: 'La Paz', icono: '🏔️' },
+  { nombre: 'Cochabamba', icono: '🌄' },
+  { nombre: 'Santa Cruz', icono: '🌴' },
+  { nombre: 'Oruro', icono: '🎭' },
+  { nombre: 'Potosí', icono: '⛰️' },
+  { nombre: 'Chuquisaca', icono: '🏛️' },
+  { nombre: 'Tarija', icono: '🍇' },
+  { nombre: 'Beni', icono: '🦜' },
+  { nombre: 'Pando', icono: '🌳' }
+]
+
 const zonasDisponibles = [
   'Centro Histórico',
   'Plan 40',
@@ -420,9 +456,25 @@ const zonasFiltradas = computed(() => {
 
 // Funciones del buscador de zonas
 const seleccionarZona = (zona) => {
-  formData.value.zona = zona
-  busquedaZona.value = zona
-  mostrarListaZonas.value = false
+  if (zona === 'Otra') {
+    // Abrir modal de departamentos
+    mostrarListaZonas.value = false
+    mostrarModalDepartamentos.value = true
+  } else {
+    formData.value.zona = zona
+    busquedaZona.value = zona
+    mostrarListaZonas.value = false
+  }
+}
+
+const seleccionarDepartamento = (departamento) => {
+  formData.value.zona = `${departamento} (Otro departamento)`
+  busquedaZona.value = `${departamento} (Otro departamento)`
+  cerrarModalDepartamentos()
+}
+
+const cerrarModalDepartamentos = () => {
+  mostrarModalDepartamentos.value = false
 }
 
 const ocultarListaZonas = () => {
@@ -1538,5 +1590,188 @@ const cerrarModalDescarga = () => {
   background: linear-gradient(135deg, #5A7A6A 0%, #7A938A 100%);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(107, 144, 128, 0.4);
+}
+
+/* Modal de Departamentos de Bolivia */
+.modal-departamentos {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-departamentos h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.8rem;
+  text-align: center;
+  padding-right: 40px;
+}
+
+.descripcion-modal {
+  text-align: center;
+  color: #666;
+  margin-bottom: 25px;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.btn-cerrar-modal {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: #FF6B6B;
+  color: white;
+  border: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.btn-cerrar-modal:hover {
+  background: #E55A5A;
+  transform: rotate(90deg);
+}
+
+.grid-departamentos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.card-departamento {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px solid #dee2e6;
+  border-radius: 12px;
+  padding: 20px 15px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.card-departamento:hover {
+  background: linear-gradient(135deg, #6B9080 0%, #A4C3B2 100%);
+  border-color: #6B9080;
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(107, 144, 128, 0.3);
+}
+
+.card-departamento:hover .nombre-depto {
+  color: white;
+}
+
+.card-departamento:hover .icono-depto {
+  transform: scale(1.2);
+}
+
+.icono-depto {
+  font-size: 3rem;
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+.nombre-depto {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  transition: all 0.3s ease;
+}
+
+/* Responsive para Modal de Departamentos */
+@media (max-width: 768px) {
+  .modal-departamentos {
+    padding: 25px 20px;
+    max-width: 95%;
+  }
+
+  .modal-departamentos h3 {
+    font-size: 1.4rem;
+    padding-right: 35px;
+  }
+
+  .descripcion-modal {
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+
+  .grid-departamentos {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .card-departamento {
+    padding: 15px 10px;
+  }
+
+  .icono-depto {
+    font-size: 2.5rem;
+  }
+
+  .nombre-depto {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-departamentos {
+    padding: 20px 15px;
+  }
+
+  .modal-departamentos h3 {
+    font-size: 1.2rem;
+  }
+
+  .descripcion-modal {
+    font-size: 0.85rem;
+  }
+
+  .grid-departamentos {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .card-departamento {
+    padding: 15px;
+  }
+
+  .icono-depto {
+    font-size: 2rem;
+  }
+
+  .nombre-depto {
+    font-size: 0.85rem;
+  }
+
+  .btn-cerrar-modal {
+    width: 30px;
+    height: 30px;
+    font-size: 1.1rem;
+  }
 }
 </style>
