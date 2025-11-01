@@ -32,6 +32,16 @@ const defaultUsers = [
     role: 'control',
     phone: '+591 70000002',
     isActive: true
+  },
+  {
+    username: 'samuel',
+    email: 'samuel@gmail.com',
+    password: 'Samuel2025!',
+    firstName: 'Samuel',
+    lastName: 'Usuario',
+    role: 'admin',
+    phone: '+591 70000003',
+    isActive: true
   }
 ];
 

@@ -251,13 +251,14 @@ const startServer = async () => {
     console.log('⚠️  No se pudieron cargar certificados SSL:', error.message);
   }
   
-  // Iniciar servidor HTTP (sin SSL) - DESHABILITADO TEMPORALMENTE
-  // http.createServer(app).listen(PORT, '0.0.0.0', () => {
-  //   console.log(`🚀 Servidor HTTP corriendo en puerto ${PORT}`);
-  //   console.log(`🌐 Local: http://localhost:${PORT}`);
-  //   console.log(`🌐 Red: http://192.168.1.4:${PORT}`);
-  // });
-  console.log(`ℹ️  Servidor HTTP deshabilitado - usando solo HTTPS en puerto ${HTTPS_PORT}`);
+  // Iniciar servidor HTTP (sin SSL)
+  // En producción: nginx usa este puerto internamente
+  // En desarrollo: permite testing sin problemas SSL
+  http.createServer(app).listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Servidor HTTP corriendo en puerto ${PORT}`);
+    console.log(`🌐 Local: http://localhost:${PORT}`);
+    console.log(`🌐 Red: http://192.168.1.4:${PORT}`);
+  });
   
   // Iniciar servidor HTTPS (con SSL) si hay certificados
   if (sslOptions) {
