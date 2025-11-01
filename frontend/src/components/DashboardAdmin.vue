@@ -77,6 +77,13 @@
           🎫 GENERAR QRs
         </button>
         <button 
+          @click="cambiarSeccion('backup')" 
+          :class="{ active: seccionActiva === 'backup' }"
+          class="nav-item"
+        >
+          💾 BACKUP/RESTORE
+        </button>
+        <button 
           @click="cambiarSeccion('scanner')" 
           :class="{ active: seccionActiva === 'scanner' }"
           class="nav-item"
@@ -137,6 +144,7 @@
         <h1 v-else-if="seccionActiva === 'eventos'">GESTIÓN DE EVENTOS</h1>
         <h1 v-else-if="seccionActiva === 'vender'">VENDER ENTRADA</h1>
         <h1 v-else-if="seccionActiva === 'generar-qr'">GENERADOR DE ENTRADAS QR</h1>
+        <h1 v-else-if="seccionActiva === 'backup'">GESTIÓN DE BACKUPS</h1>
         <h1 v-else-if="seccionActiva === 'scanner'">ESCÁNER QR</h1>
         <h1 v-else-if="seccionActiva === 'trabajadores'">LISTA DE TRABAJADORES</h1>
         <h1 v-else-if="seccionActiva === 'participantes'">LISTA DE PARTICIPANTES</h1>
@@ -523,6 +531,11 @@
       <!-- SECCIÓN GENERADOR DE QR PARA ENTRADAS -->
       <section v-else-if="seccionActiva === 'generar-qr'" class="seccion-contenido">
         <GeneradorQREntradas />
+      </section>
+      
+      <!-- SECCIÓN BACKUP Y RESTORE -->
+      <section v-else-if="seccionActiva === 'backup'" class="seccion-contenido">
+        <BackupManager />
       </section>
       
       <!-- SECCIÓN ESCÁNER QR -->
@@ -1214,6 +1227,7 @@ import QRValidResult from './QRValidResult.vue'
 import TrabajadoresList from './TrabajadoresList.vue'
 import ParticipantesList from './ParticipantesList.vue'
 import GeneradorQREntradas from './GeneradorQREntradas.vue'
+import BackupManager from './BackupManager.vue'
 import jsQR from 'jsqr'
 
 const usuario = ref({})
