@@ -31,11 +31,15 @@ app.use(cors({
     // Lista de orígenes permitidos por defecto (sin slash final)
     const allowedOrigins = [
       'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
       'http://localhost:8080',
       'http://192.168.1.3:5173',
       'http://192.168.1.3:8080',
       'http://192.168.1.3:3000',
       'https://localhost:5173',
+      'https://localhost:5174',
+      'https://localhost:5175',
       'https://localhost:8443',
       'https://192.168.1.3:5173',
       'https://192.168.1.3:3443',
@@ -45,12 +49,26 @@ app.use(cors({
       'https://fepp.online',
       'http://www.fepp.online',
       'https://www.fepp.online',
-      // Red local - tu máquina Windows
+      // Red local - IP anterior
       'http://192.168.1.4:8080',
       'http://192.168.1.4:5173',
+      'http://192.168.1.4:5174',
+      'http://192.168.1.4:5175',
       'https://192.168.1.4:5173',
+      'https://192.168.1.4:5174',
+      'https://192.168.1.4:5175',
       'https://192.168.1.4:3443',
-      'https://192.168.1.4:8443'
+      'https://192.168.1.4:8443',
+      // Red local - IP nueva
+      'http://192.168.15.245:8080',
+      'http://192.168.15.245:5173',
+      'http://192.168.15.245:5174',
+      'http://192.168.15.245:5175',
+      'https://192.168.15.245:5173',
+      'https://192.168.15.245:5174',
+      'https://192.168.15.245:5175',
+      'https://192.168.15.245:3443',
+      'https://192.168.15.245:8443'
     ];
 
     // Si se definió FRONTEND_URL en env, añádelo (normalizado)
@@ -91,6 +109,7 @@ const staffRoutes = require('./src/routes/staff');
 const trabajadorRoutes = require('./src/routes/trabajadores');
 const participanteRoutes = require('./src/routes/participantes');
 const empresaRoutes = require('./src/routes/empresas');
+const backupRoutes = require('./src/routes/backup');
 
 // Configurar rutas
 app.use('/api/auth', authRoutes);
@@ -103,6 +122,7 @@ app.use('/api/participantes', participanteRoutes);
 app.use('/api/empresas', empresaRoutes);
 app.use('/api/validation', require('./src/routes/validation'));
 app.use('/api/access', require('./src/routes/access'));
+app.use('/api/backup', backupRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -231,12 +251,13 @@ const startServer = async () => {
     console.log('⚠️  No se pudieron cargar certificados SSL:', error.message);
   }
   
-  // Iniciar servidor HTTP (sin SSL)
-  http.createServer(app).listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Servidor HTTP corriendo en puerto ${PORT}`);
-    console.log(`🌐 Local: http://localhost:${PORT}`);
-    console.log(`🌐 Red: http://192.168.1.4:${PORT}`);
-  });
+  // Iniciar servidor HTTP (sin SSL) - DESHABILITADO TEMPORALMENTE
+  // http.createServer(app).listen(PORT, '0.0.0.0', () => {
+  //   console.log(`🚀 Servidor HTTP corriendo en puerto ${PORT}`);
+  //   console.log(`🌐 Local: http://localhost:${PORT}`);
+  //   console.log(`🌐 Red: http://192.168.1.4:${PORT}`);
+  // });
+  console.log(`ℹ️  Servidor HTTP deshabilitado - usando solo HTTPS en puerto ${HTTPS_PORT}`);
   
   // Iniciar servidor HTTPS (con SSL) si hay certificados
   if (sslOptions) {

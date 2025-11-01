@@ -773,4 +773,56 @@ export const empresaService = {
   }
 }
 
+// Servicio de backup
+export const backupService = {
+  async exportBackup() {
+    try {
+      const response = await apiClient.post('/api/backup/export', {}, {
+        responseType: 'blob' // Importante para recibir el archivo
+      })
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error exportando backup:', error)
+      throw error
+    }
+  },
+
+  async importBackup(file) {
+    try {
+      const formData = new FormData()
+      formData.append('backup', file)
+      
+      const response = await apiClient.post('/api/backup/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error importando backup:', error)
+      throw error
+    }
+  },
+
+  async listBackups() {
+    try {
+      const response = await apiClient.get('/api/backup/list')
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error listando backups:', error)
+      throw error
+    }
+  },
+
+  async deleteBackup(filename) {
+    try {
+      const response = await apiClient.delete(`/api/backup/${filename}`)
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error eliminando backup:', error)
+      throw error
+    }
+  }
+}
+
 export default apiClient

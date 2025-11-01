@@ -1,0 +1,8 @@
+# Ignorar todos los archivos de backup
+*.sql
+*.sql.gz
+*.dump
+
+# Mantener el directorio en git
+!README.md
+!.gitignore
