@@ -1,8 +1,8 @@
 # Backend Dockerfile para SISQR6
 FROM node:20-alpine
 
-# Instalar wget para healthcheck
-RUN apk add --no-cache wget
+# Instalar wget para healthcheck y postgresql-client para backups
+RUN apk add --no-cache wget postgresql-client
 
 # Establecer directorio de trabajo
 WORKDIR /app
