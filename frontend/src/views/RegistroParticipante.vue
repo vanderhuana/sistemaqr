@@ -381,6 +381,8 @@ const zonasDisponibles = [
   'Villa Copacabana',
   'Cantumarca',
   'Zona Huachacalla',
+  'Zona Delicias',
+  'San Bernardo San Martin',
   'San Pedro',
   'San Benito',
   'San Gerardo',
