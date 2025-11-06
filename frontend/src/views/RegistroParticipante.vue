@@ -14,7 +14,7 @@
     <div class="contenido-formulario">
       <!-- Formulario izquierda -->
       <div class="formulario-card">
-        <h2 class="titulo-formulario">FORMULARIO DE REGISTRO<br />PARTICIPANTE</h2>
+        <h2 class="titulo-formulario">FORMULARIO DE REGISTRO<br />PARTICIPANTE / AFILIADO FEPP</h2>
 
         <form @submit.prevent="enviarFormulario" class="form-participante">
           <div class="form-group">
