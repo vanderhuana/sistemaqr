@@ -90,22 +90,24 @@
             </div>
 
             <div class="form-group">
-              <label>Correo Electrónico:</label>
+              <label>Correo Electrónico: <span class="requerido">*</span></label>
               <input 
                 v-model="formData.correo" 
                 type="email" 
                 placeholder="tucorreo@email.com"
+                required
                 class="form-control"
               />
             </div>
           </div>
 
           <div class="form-group zona-group">
-            <label>Zona:</label>
+            <label>Zona: <span class="requerido">*</span></label>
             <input 
               v-model="busquedaZona" 
               type="text" 
               placeholder="Buscar zona de residencia..."
+              required
               class="buscador-zona"
               @focus="mostrarListaZonas = true"
               @input="mostrarListaZonas = true"
@@ -127,17 +129,18 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label>Fecha de Nacimiento:</label>
+              <label>Fecha de Nacimiento: <span class="requerido">*</span></label>
               <input 
                 v-model="formData.fechaNacimiento" 
                 type="date" 
+                required
                 class="form-control"
               />
             </div>
 
             <div class="form-group">
-              <label>Sexo:</label>
-              <select v-model="formData.sexo" class="form-control">
+              <label>Sexo: <span class="requerido">*</span></label>
+              <select v-model="formData.sexo" required class="form-control">
                 <option value="">Seleccionar</option>
                 <option value="M">Masculino</option>
                 <option value="F">Femenino</option>
@@ -146,11 +149,12 @@
           </div>
 
           <div class="form-group">
-            <label>Ocupación:</label>
+            <label>Ocupación: <span class="requerido">*</span></label>
             <input 
               v-model="formData.ocupacion" 
               type="text" 
               placeholder="Tu ocupación"
+              required
               class="form-control"
             />
           </div>
@@ -159,19 +163,20 @@
           <div class="seccion-referencia">
             <h3>Datos de Emergencia (Referencia)</h3>
             <div class="form-group">
-              <label>Nombre de Referencia:</label>
+              <label>Nombre de Referencia: <span class="requerido">*</span></label>
               <input 
                 v-model="formData.nombreReferencia" 
                 type="text" 
                 placeholder="Nombre completo"
+                required
                 class="form-control"
               />
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label>Parentesco:</label>
-                <select v-model="formData.parentesco" class="form-control">
+                <label>Parentesco: <span class="requerido">*</span></label>
+                <select v-model="formData.parentesco" required class="form-control">
                   <option value="">Seleccionar parentesco</option>
                   <option value="Padre">Padre</option>
                   <option value="Madre">Madre</option>
@@ -193,18 +198,19 @@
               </div>
 
               <div class="form-group">
-                <label>Celular de Referencia:</label>
+                <label>Celular de Referencia: <span class="requerido">*</span></label>
                 <input 
                   v-model="formData.celularReferencia" 
                   type="tel" 
                   placeholder="########"
                   maxlength="8"
                   @input="validarCelularReferencia"
+                  required
                   class="form-control"
                   :class="{ 'input-error': errores.celularReferencia }"
                 />
                 <span v-if="errores.celularReferencia" class="mensaje-error">{{ errores.celularReferencia }}</span>
-                <span v-else class="mensaje-ayuda">Opcional: 8 dígitos, inicia con 6 o 7</span>
+                <span v-else class="mensaje-ayuda">8 dígitos, inicia con 6 o 7</span>
               </div>
             </div>
           </div>
@@ -459,10 +465,10 @@ const validarCelular = () => {
 const validarCelularReferencia = () => {
   const celularRef = formData.value.celularReferencia
   
-  // Si está vacío, no validar (es opcional)
+  // Ahora es obligatorio
   if (!celularRef || celularRef.trim() === '') {
-    errores.value.celularReferencia = ''
-    return true
+    errores.value.celularReferencia = 'El celular de referencia es obligatorio'
+    return false
   }
   
   // Formato Bolivia: 8 dígitos, inicia con 6 o 7
