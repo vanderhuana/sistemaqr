@@ -87,6 +87,9 @@ const exportBackup = async (req, res) => {
 /**
  * Importar backup a la base de datos
  */
+/**
+ * Importar backup a la base de datos
+ */
 const importBackup = async (req, res) => {
   try {
     // Verificar que se haya subido un archivo
@@ -104,6 +107,15 @@ const importBackup = async (req, res) => {
 
     console.log(`🔄 Restaurando backup desde: ${uploadedFile.originalname}`);
 
+    // Leer el contenido del archivo SQL
+    const sqlContent = await fs.readFile(filepath, 'utf8');
+    
+    if (!sqlContent || sqlContent.trim().length === 0) {
+      throw new Error('El archivo de backup está vacío');
+    }
+
+    console.log(`📄 Archivo leído: ${(sqlContent.length / 1024).toFixed(2)} KB`);
+
     // Obtener credenciales de la base de datos
     const dbHost = process.env.DB_HOST || 'localhost';
     const dbPort = process.env.DB_PORT || '5432';
@@ -111,19 +123,104 @@ const importBackup = async (req, res) => {
     const dbUser = process.env.DB_USER || 'sisqr6_user';
     const dbPassword = process.env.DB_PASSWORD || 'postgres123';
 
-    // Comando psql para restaurar
-    // Para Windows, usamos SET en lugar de PGPASSWORD=
+    // Intentar primero con psql si está disponible
     const isWindows = process.platform === 'win32';
-    const psqlCommand = isWindows
-      ? `set PGPASSWORD=${dbPassword}&& psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -f "${filepath}"`
-      : `PGPASSWORD="${dbPassword}" psql -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -f "${filepath}"`;
+    
+    try {
+      // Buscar psql en rutas comunes de Windows
+      const psqlPaths = [
+        'psql',
+        'C:\\Program Files\\PostgreSQL\\16\\bin\\psql.exe',
+        'C:\\Program Files\\PostgreSQL\\15\\bin\\psql.exe',
+        'C:\\Program Files\\PostgreSQL\\14\\bin\\psql.exe',
+        'C:\\Program Files\\PostgreSQL\\13\\bin\\psql.exe',
+        'C:\\PostgreSQL\\16\\bin\\psql.exe',
+        'C:\\PostgreSQL\\15\\bin\\psql.exe'
+      ];
 
-    // Ejecutar psql
-    const { stdout, stderr } = await execAsync(psqlCommand);
+      let psqlCommand = null;
+      
+      // Intentar encontrar psql
+      for (const psqlPath of psqlPaths) {
+        try {
+          if (isWindows) {
+            await execAsync(`where "${psqlPath}" 2>nul`);
+          } else {
+            await execAsync(`which "${psqlPath}"`);
+          }
+          psqlCommand = psqlPath;
+          console.log(`✅ psql encontrado en: ${psqlPath}`);
+          break;
+        } catch (e) {
+          // Continuar buscando
+        }
+      }
 
-    console.log('✅ Backup restaurado exitosamente');
-    if (stdout) console.log('stdout:', stdout);
-    if (stderr) console.log('stderr:', stderr);
+      if (psqlCommand) {
+        // Usar psql si está disponible
+        const command = isWindows
+          ? `set PGPASSWORD=${dbPassword}&& "${psqlCommand}" -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -f "${filepath}"`
+          : `PGPASSWORD="${dbPassword}" "${psqlCommand}" -h ${dbHost} -p ${dbPort} -U ${dbUser} -d ${dbName} -f "${filepath}"`;
+
+        console.log('🔄 Ejecutando restauración con psql...');
+        const { stdout, stderr } = await execAsync(command);
+
+        console.log('✅ Backup restaurado exitosamente con psql');
+        if (stdout) console.log('stdout:', stdout);
+        if (stderr && !stderr.includes('NOTICE')) console.log('stderr:', stderr);
+      } else {
+        throw new Error('psql no encontrado, usando método alternativo');
+      }
+
+    } catch (psqlError) {
+      console.log('⚠️  psql no disponible, usando método alternativo con pg...');
+      
+      // Método alternativo: ejecutar SQL directamente con pg
+      const { Client } = require('pg');
+      const client = new Client({
+        host: dbHost,
+        port: dbPort,
+        database: dbName,
+        user: dbUser,
+        password: dbPassword
+      });
+
+      try {
+        await client.connect();
+        console.log('✅ Conectado a PostgreSQL');
+        
+        // Ejecutar el SQL en bloques para evitar timeouts
+        const statements = sqlContent
+          .split(';')
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && !s.startsWith('--'));
+
+        console.log(`📊 Ejecutando ${statements.length} sentencias SQL...`);
+        
+        for (let i = 0; i < statements.length; i++) {
+          const statement = statements[i];
+          if (statement && statement.length > 0) {
+            try {
+              await client.query(statement + ';');
+              if ((i + 1) % 100 === 0) {
+                console.log(`✓ Procesadas ${i + 1}/${statements.length} sentencias`);
+              }
+            } catch (stmtError) {
+              // Ignorar errores de DROP TABLE si no existe
+              if (!stmtError.message.includes('does not exist')) {
+                console.error(`Error en sentencia ${i + 1}:`, stmtError.message);
+              }
+            }
+          }
+        }
+        
+        console.log('✅ Todas las sentencias ejecutadas');
+        await client.end();
+      } catch (clientError) {
+        await client.end();
+        throw clientError;
+      }
+    }
 
     // Eliminar archivo temporal
     try {
@@ -135,7 +232,7 @@ const importBackup = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Backup restaurado exitosamente',
+      message: 'Backup restaurado exitosamente. Recarga la página para ver los cambios.',
       filename: uploadedFile.originalname
     });
 
@@ -247,9 +344,128 @@ const deleteBackup = async (req, res) => {
   }
 };
 
+/**
+ * Descargar un backup específico del servidor
+ */
+const downloadBackup = async (req, res) => {
+  try {
+    const { filename } = req.params;
+
+    // Validar que el filename no contenga caracteres peligrosos
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nombre de archivo inválido'
+      });
+    }
+
+    const filepath = path.join(BACKUP_DIR, filename);
+
+    // Verificar que el archivo existe
+    await fs.access(filepath);
+
+    // Obtener información del archivo
+    const stats = await fs.stat(filepath);
+
+    console.log(`📥 Descargando backup: ${filename} (${(stats.size / (1024 * 1024)).toFixed(2)} MB)`);
+
+    // Configurar headers para descarga
+    res.setHeader('Content-Type', 'application/sql');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', stats.size);
+
+    // Enviar el archivo
+    const fileBuffer = await fs.readFile(filepath);
+    res.send(fileBuffer);
+
+    console.log(`✅ Backup descargado: ${filename}`);
+
+  } catch (error) {
+    console.error('❌ Error descargando backup:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al descargar el backup',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Limpiar todas las tablas de la base de datos
+ */
+const cleanDatabase = async (req, res) => {
+  try {
+    console.log('🗑️  Iniciando limpieza de la base de datos...');
+
+    const { sequelize } = require('../config/database');
+    
+    // Lista de tablas en orden (respetando dependencias)
+    const tablasEnOrden = [
+      { nombre: 'ValidationLogs', displayName: 'Logs de Validación' },
+      { nombre: 'tickets', displayName: 'Tickets' },
+      { nombre: 'participantes', displayName: 'Participantes' },
+      { nombre: 'trabajadores', displayName: 'Trabajadores' },
+      { nombre: 'events', displayName: 'Eventos' },
+      { nombre: 'empresas', displayName: 'Empresas' },
+      { nombre: 'staff', displayName: 'Staff' }
+    ];
+
+    const resultado = {
+      tablasLimpiadas: [],
+      registrosEliminados: 0
+    };
+
+    for (const tabla of tablasEnOrden) {
+      try {
+        // Contar registros antes de eliminar
+        const [countResult] = await sequelize.query(`SELECT COUNT(*) as count FROM "${tabla.nombre}"`);
+        const count = parseInt(countResult[0].count);
+        
+        if (count > 0) {
+          // Truncar tabla y reiniciar secuencias
+          await sequelize.query(`TRUNCATE TABLE "${tabla.nombre}" RESTART IDENTITY CASCADE`);
+          console.log(`✅ ${tabla.displayName}: ${count} registros eliminados`);
+          
+          resultado.tablasLimpiadas.push({
+            tabla: tabla.displayName,
+            registros: count
+          });
+          resultado.registrosEliminados += count;
+        } else {
+          console.log(`ℹ️  ${tabla.displayName}: ya estaba vacía`);
+        }
+      } catch (error) {
+        // Si la tabla no existe, continuar
+        if (!error.message.includes('does not exist')) {
+          console.error(`❌ Error en ${tabla.displayName}:`, error.message);
+        }
+      }
+    }
+
+    console.log('✅ Base de datos limpiada exitosamente');
+
+    res.json({
+      success: true,
+      message: 'Base de datos limpiada exitosamente',
+      tablasLimpiadas: resultado.tablasLimpiadas,
+      totalRegistrosEliminados: resultado.registrosEliminados
+    });
+
+  } catch (error) {
+    console.error('❌ Error limpiando base de datos:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al limpiar la base de datos',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   exportBackup,
   importBackup,
   listBackups,
-  deleteBackup
+  deleteBackup,
+  downloadBackup,
+  cleanDatabase
 };

@@ -49,8 +49,8 @@
           GESTIONAR USUARIOS
         </button>
         <button 
-          @click="cambiarSeccion('reportes')" 
-          :class="{ active: seccionActiva === 'reportes' }"
+          @click="cambiarSeccion('reportes-ventas')" 
+          :class="{ active: seccionActiva === 'reportes-ventas' }"
           class="nav-item"
         >
           REPORTES DE VENTAS
@@ -84,6 +84,13 @@
           💾 BACKUP/RESTORE
         </button>
         <button 
+          @click="cambiarSeccion('reportes')" 
+          :class="{ active: seccionActiva === 'reportes' }"
+          class="nav-item"
+        >
+          📊 REPORTES
+        </button>
+        <button 
           @click="cambiarSeccion('scanner')" 
           :class="{ active: seccionActiva === 'scanner' }"
           class="nav-item"
@@ -108,6 +115,55 @@
           </button>
         </div>
 
+        <!-- CONTROL DE FORMULARIOS DE REGISTRO -->
+        <div class="control-acceso-toggle">
+          <div class="toggle-header">
+            <span>👥 Formulario Participantes</span>
+            <span :class="['estado-badge', formularioParticipantesActivo ? 'activo' : 'inactivo']">
+              {{ formularioParticipantesActivo ? 'ACTIVO' : 'INACTIVO' }}
+            </span>
+          </div>
+          <button 
+            @click="toggleFormularioParticipantes" 
+            :class="['btn-toggle', formularioParticipantesActivo ? 'activo' : 'inactivo']"
+            :disabled="cargandoToggleFormularios"
+          >
+            {{ cargandoToggleFormularios ? '⏳' : (formularioParticipantesActivo ? '✅ DESACTIVAR' : '❌ ACTIVAR') }}
+          </button>
+        </div>
+
+        <div class="control-acceso-toggle">
+          <div class="toggle-header">
+            <span>👷 Formulario Trabajadores</span>
+            <span :class="['estado-badge', formularioTrabajadoresActivo ? 'activo' : 'inactivo']">
+              {{ formularioTrabajadoresActivo ? 'ACTIVO' : 'INACTIVO' }}
+            </span>
+          </div>
+          <button 
+            @click="toggleFormularioTrabajadores" 
+            :class="['btn-toggle', formularioTrabajadoresActivo ? 'activo' : 'inactivo']"
+            :disabled="cargandoToggleFormularios"
+          >
+            {{ cargandoToggleFormularios ? '⏳' : (formularioTrabajadoresActivo ? '✅ DESACTIVAR' : '❌ ACTIVAR') }}
+          </button>
+        </div>
+
+        <div class="control-acceso-toggle">
+          <div class="toggle-header">
+            <span>🏆 Formulario FEIPOBOL</span>
+            <span :class="['estado-badge', formularioFeipobolActivo ? 'activo' : 'inactivo']">
+              {{ formularioFeipobolActivo ? 'ACTIVO' : 'INACTIVO' }}
+            </span>
+          </div>
+          <button 
+            @click="toggleFormularioFeipobol" 
+            :class="['btn-toggle', formularioFeipobolActivo ? 'activo' : 'inactivo']"
+            :disabled="cargandoToggleFormularios"
+          >
+            {{ cargandoToggleFormularios ? '⏳' : (formularioFeipobolActivo ? '✅ DESACTIVAR' : '❌ ACTIVAR') }}
+          </button>
+        </div>
+
         <!-- MENÚ LISTA -->
         <div class="nav-seccion">
           <div class="nav-seccion-titulo">LISTA</div>
@@ -125,6 +181,21 @@
           >
             🎯 PARTICIPANTES
           </button>
+          <button 
+            @click="seccionActiva = 'registro-feipobol'" 
+            :class="{ active: seccionActiva === 'registro-feipobol' }"
+            class="nav-item sub-item"
+          >
+            📋 Registros FEIPOBOL
+          </button>
+          
+          <button 
+            @click="cambiarSeccion('premios-feipobol')"
+            :class="{ active: seccionActiva === 'premios-feipobol' }"
+            class="nav-item sub-item"
+          >
+            🏆 Premios FEIPOBOL
+          </button>
         </div>
       </nav>
 
@@ -140,7 +211,8 @@
       <!-- HEADER DEL CONTENIDO -->
       <header class="contenido-header">
         <h1 v-if="seccionActiva === 'usuarios'">LISTA DE USUARIOS</h1>
-        <h1 v-else-if="seccionActiva === 'reportes'">REPORTES DE VENTAS</h1>
+        <h1 v-else-if="seccionActiva === 'reportes-ventas'">REPORTES DE VENTAS</h1>
+        <h1 v-else-if="seccionActiva === 'reportes'">REPORTES COMPLETOS</h1>
         <h1 v-else-if="seccionActiva === 'eventos'">GESTIÓN DE EVENTOS</h1>
         <h1 v-else-if="seccionActiva === 'vender'">VENDER ENTRADA</h1>
         <h1 v-else-if="seccionActiva === 'generar-qr'">GENERADOR DE ENTRADAS QR</h1>
@@ -148,6 +220,8 @@
         <h1 v-else-if="seccionActiva === 'scanner'">ESCÁNER QR</h1>
         <h1 v-else-if="seccionActiva === 'trabajadores'">LISTA DE TRABAJADORES</h1>
         <h1 v-else-if="seccionActiva === 'participantes'">LISTA DE PARTICIPANTES</h1>
+        <h1 v-else-if="seccionActiva === 'registro-feipobol'">REGISTRO FEIPOBOL 2025</h1>
+        <h1 v-else-if="seccionActiva === 'premios-feipobol'">🏆 GESTIÓN DE PREMIOS FEIPOBOL</h1>
         <h1 v-else>PANEL ADMINISTRADOR</h1>
       </header>
       
@@ -247,8 +321,8 @@
         </div>
       </section>
       
-      <!-- SECCIÓN REPORTES -->
-      <section v-else-if="seccionActiva === 'reportes'" class="seccion-contenido">
+      <!-- SECCIÓN REPORTES DE VENTAS (Estadísticas) -->
+      <section v-else-if="seccionActiva === 'reportes-ventas'" class="seccion-contenido">
         <div class="contenido-card">
           <div class="reportes-grid">
             <div class="reporte-item">
@@ -538,6 +612,11 @@
         <BackupManager />
       </section>
       
+      <!-- SECCIÓN REPORTES -->
+      <section v-else-if="seccionActiva === 'reportes'" class="seccion-contenido">
+        <ReportsManager />
+      </section>
+      
       <!-- SECCIÓN ESCÁNER QR -->
       <section v-else-if="seccionActiva === 'scanner'" class="seccion-contenido">
         <div class="contenido-card">
@@ -662,6 +741,16 @@
       <!-- SECCIÓN PARTICIPANTES -->
       <section v-else-if="seccionActiva === 'participantes'" class="seccion-contenido">
         <ParticipantesList />
+      </section>
+
+      <!-- SECCIÓN REGISTRO FEIPOBOL -->
+      <section v-else-if="seccionActiva === 'registro-feipobol'" class="seccion-contenido">
+        <RegistroFeipobolList />
+      </section>
+
+      <!-- SECCIÓN PREMIOS FEIPOBOL -->
+      <section v-else-if="seccionActiva === 'premios-feipobol'" class="seccion-contenido">
+        <PremiosFeipobol />
       </section>
 
     </main>
@@ -1222,19 +1311,30 @@ export default {
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import apiClient, { userService, eventService, ticketService, validationService, accessService } from '@/services/api'
+import { useRouter } from 'vue-router'
+import apiClient, { userService, eventService, ticketService, validationService, accessService, configuracionService } from '@/services/api'
 import QRValidResult from './QRValidResult.vue'
 import TrabajadoresList from './TrabajadoresList.vue'
 import ParticipantesList from './ParticipantesList.vue'
+import RegistroFeipobolList from './RegistroFeipobolList.vue'
+import PremiosFeipobol from '@/views/admin/PremiosFeipobol.vue'
 import GeneradorQREntradas from './GeneradorQREntradas.vue'
 import BackupManager from './BackupManager.vue'
+import ReportsManager from './ReportsManager.vue'
 import jsQR from 'jsqr'
 
+const router = useRouter()
 const usuario = ref({})
 
 // Control de acceso
 const sistemaAccesoActivo = ref(true)
 const cargandoToggle = ref(false)
+
+// Control de formularios de registro
+const formularioParticipantesActivo = ref(true)
+const formularioTrabajadoresActivo = ref(true)
+const formularioFeipobolActivo = ref(true)
+const cargandoToggleFormularios = ref(false)
 
 const estadisticas = ref({
   totalVentas: 0,
@@ -2268,6 +2368,17 @@ const cambiarSeccion = (seccion) => {
   }
 }
 
+const abrirPremiosFeipobol = () => {
+  console.log('🏆 Intentando navegar a Premios FEIPOBOL')
+  console.log('Router disponible:', router)
+  try {
+    router.push('/admin/premios-feipobol')
+    console.log('✅ Navegación iniciada')
+  } catch (error) {
+    console.error('❌ Error en navegación:', error)
+  }
+}
+
 // **FUNCIONES DEL ESCÁNER QR**
 const toggleScanner = async () => {
   try {
@@ -2450,6 +2561,108 @@ const toggleSistemaAcceso = async () => {
     alert('❌ Error de conexión')
   } finally {
     cargandoToggle.value = false
+  }
+}
+
+// **FUNCIONES DE CONTROL DE FORMULARIOS**
+const cargarEstadoFormularios = async () => {
+  try {
+    const response = await configuracionService.getFormulariosStatus()
+    if (response.success) {
+      formularioParticipantesActivo.value = response.data.participantes
+      formularioTrabajadoresActivo.value = response.data.trabajadores
+      formularioFeipobolActivo.value = response.data.feipobol
+      console.log('✅ Estado de formularios cargado:', response.data)
+    }
+  } catch (error) {
+    console.error('Error cargando estado de formularios:', error)
+  }
+}
+
+const toggleFormularioParticipantes = async () => {
+  if (cargandoToggleFormularios.value) return
+  
+  const nuevoEstado = !formularioParticipantesActivo.value
+  const confirmMsg = nuevoEstado ? 
+    '¿Activar el formulario de registro de participantes?\n\nLos usuarios podrán registrarse como participantes.' :
+    '⚠️ ¿DESACTIVAR el formulario de registro de participantes?\n\nNadie podrá registrarse como participante hasta que se reactive.'
+  
+  if (!confirm(confirmMsg)) return
+  
+  cargandoToggleFormularios.value = true
+  
+  try {
+    const response = await configuracionService.toggleFormulario('participantes', nuevoEstado)
+    
+    if (response.success) {
+      formularioParticipantesActivo.value = nuevoEstado
+      alert(`✅ Formulario de participantes ${nuevoEstado ? 'ACTIVADO' : 'DESACTIVADO'} correctamente`)
+    } else {
+      alert('❌ Error al cambiar estado del formulario: ' + response.error)
+    }
+  } catch (error) {
+    console.error('Error:', error)
+    alert('❌ Error de conexión')
+  } finally {
+    cargandoToggleFormularios.value = false
+  }
+}
+
+const toggleFormularioTrabajadores = async () => {
+  if (cargandoToggleFormularios.value) return
+  
+  const nuevoEstado = !formularioTrabajadoresActivo.value
+  const confirmMsg = nuevoEstado ? 
+    '¿Activar el formulario de registro de trabajadores?\n\nLos usuarios podrán registrarse como trabajadores.' :
+    '⚠️ ¿DESACTIVAR el formulario de registro de trabajadores?\n\nNadie podrá registrarse como trabajador hasta que se reactive.'
+  
+  if (!confirm(confirmMsg)) return
+  
+  cargandoToggleFormularios.value = true
+  
+  try {
+    const response = await configuracionService.toggleFormulario('trabajadores', nuevoEstado)
+    
+    if (response.success) {
+      formularioTrabajadoresActivo.value = nuevoEstado
+      alert(`✅ Formulario de trabajadores ${nuevoEstado ? 'ACTIVADO' : 'DESACTIVADO'} correctamente`)
+    } else {
+      alert('❌ Error al cambiar estado del formulario: ' + response.error)
+    }
+  } catch (error) {
+    console.error('Error:', error)
+    alert('❌ Error de conexión')
+  } finally {
+    cargandoToggleFormularios.value = false
+  }
+}
+
+const toggleFormularioFeipobol = async () => {
+  if (cargandoToggleFormularios.value) return
+  
+  const nuevoEstado = !formularioFeipobolActivo.value
+  const confirmMsg = nuevoEstado ? 
+    '¿Activar el formulario de registro de FEIPOBOL?\n\nLos usuarios podrán registrarse para el sorteo.' :
+    '⚠️ ¿DESACTIVAR el formulario de registro de FEIPOBOL?\n\nNadie podrá registrarse para el sorteo hasta que se reactive.'
+  
+  if (!confirm(confirmMsg)) return
+  
+  cargandoToggleFormularios.value = true
+  
+  try {
+    const response = await configuracionService.toggleFormulario('feipobol', nuevoEstado)
+    
+    if (response.success) {
+      formularioFeipobolActivo.value = nuevoEstado
+      alert(`✅ Formulario de FEIPOBOL ${nuevoEstado ? 'ACTIVADO' : 'DESACTIVADO'} correctamente`)
+    } else {
+      alert('❌ Error al cambiar estado del formulario: ' + response.error)
+    }
+  } catch (error) {
+    console.error('Error:', error)
+    alert('❌ Error de conexión')
+  } finally {
+    cargandoToggleFormularios.value = false
   }
 }
 
@@ -2901,6 +3114,7 @@ onMounted(async () => {
   await cargarEventosVenta()
   await cargarEstadisticas()
   await cargarEstadoSistema() // Cargar estado del sistema de acceso
+  await cargarEstadoFormularios() // Cargar estado de formularios de registro
 })
 
 // Limpiar recursos al desmontar el componente

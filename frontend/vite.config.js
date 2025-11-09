@@ -1,10 +1,30 @@
 import { fileURLToPath, URL } from 'node:url'
 import fs from 'node:fs'
 import path from 'node:path'
+import os from 'node:os'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 // import vueDevTools from 'vite-plugin-vue-devtools' // DESACTIVADO
+
+// Función para obtener la IP local automáticamente
+function getLocalIP() {
+  const interfaces = os.networkInterfaces()
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      // Ignorar direcciones internas y no IPv4
+      if (iface.family === 'IPv4' && !iface.internal) {
+        // Priorizar redes WiFi/Ethernet típicas (192.168.x.x, 10.x.x.x)
+        if (iface.address.startsWith('192.168.') || iface.address.startsWith('10.')) {
+          console.log(`🌐 IP Local detectada: ${iface.address}`)
+          return iface.address
+        }
+      }
+    }
+  }
+  console.log('⚠️  No se detectó IP local, usando localhost')
+  return 'localhost'
+}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -63,14 +83,20 @@ export default defineConfig({
       httpsOptions = false
     }
 
+    // Detectar IP local automáticamente
+    const localIP = getLocalIP()
+    const backendTarget = `https://${localIP}:3443`
+    
+    console.log(`🔗 Configurando proxy hacia: ${backendTarget}`)
+    
     return {
       host: '0.0.0.0', // Escuchar en todas las interfaces de red
       port: 5173,
       https: httpsOptions,
       proxy: {
         '/api': {
-          // Proxy hacia backend HTTPS (self-signed aceptado)
-          target: 'https://localhost:3443',
+          // Proxy hacia backend HTTPS con IP local detectada automáticamente
+          target: backendTarget,
           changeOrigin: true,
           secure: false,
           configure: (proxy, _options) => {

@@ -3,6 +3,9 @@
     <div class="header-lista">
       <h2>🎯 Lista de Participantes</h2>
       <div class="header-acciones">
+        <button @click="exportarExcel" class="btn-exportar-excel" title="Exportar a Excel">
+          📊 EXPORTAR EXCEL
+        </button>
         <button @click="abrirModalEmpresas" class="btn-gestionar-empresas">
           🏢 GESTIONAR EMPRESAS/STANDS
         </button>
@@ -50,6 +53,21 @@
 
     <!-- Tabla de participantes -->
     <div v-else-if="participantesFiltrados.length > 0" class="tabla-container">
+      <!-- Info de paginación -->
+      <div class="info-paginacion">
+        <p>
+          Mostrando {{ (paginaActual - 1) * itemsPorPagina + 1 }} - 
+          {{ Math.min(paginaActual * itemsPorPagina, participantesFiltrados.length) }} 
+          de {{ participantesFiltrados.length }} participantes
+        </p>
+        <select v-model.number="itemsPorPagina" class="select-items-pagina" @change="paginaActual = 1">
+          <option :value="10">10 por página</option>
+          <option :value="20">20 por página</option>
+          <option :value="50">50 por página</option>
+          <option :value="100">100 por página</option>
+        </select>
+      </div>
+
       <table class="tabla-participantes">
         <thead>
           <tr>
@@ -65,7 +83,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="participante in participantesFiltrados" :key="participante.id">
+          <tr v-for="participante in participantesPaginados" :key="participante.id">
             <td class="nombre-col">
               {{ participante.nombre }} {{ participante.apellido }}
             </td>
@@ -106,6 +124,9 @@
               <button @click="verDetalle(participante)" class="btn-accion ver" title="Ver detalle">
                 👁️
               </button>
+              <button @click="editarParticipante(participante)" class="btn-accion editar" title="Editar datos">
+                ✏️
+              </button>
               <button @click="generarCredencial(participante)" class="btn-accion credencial" title="Generar Credencial">
                 🎫
               </button>
@@ -116,6 +137,37 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Controles de paginación -->
+      <div v-if="totalPaginas > 1" class="paginacion">
+        <button 
+          @click="paginaAnterior" 
+          :disabled="paginaActual === 1"
+          class="btn-pagina"
+        >
+          ← Anterior
+        </button>
+
+        <div class="numeros-pagina">
+          <button 
+            v-for="pagina in totalPaginas" 
+            :key="pagina"
+            @click="cambiarPagina(pagina)"
+            :class="['btn-numero-pagina', { activo: pagina === paginaActual }]"
+            v-show="mostrarNumeroPagina(pagina)"
+          >
+            {{ pagina }}
+          </button>
+        </div>
+
+        <button 
+          @click="paginaSiguiente" 
+          :disabled="paginaActual === totalPaginas"
+          class="btn-pagina"
+        >
+          Siguiente →
+        </button>
+      </div>
     </div>
 
     <!-- Sin resultados -->
@@ -191,124 +243,422 @@
       </div>
     </div>
 
+    <!-- Modal de Edición -->
+    <div v-if="participanteEditando" class="modal-overlay" @click="cerrarEdicion">
+      <div class="modal-contenido modal-edicion" @click.stop>
+        <button @click="cerrarEdicion" class="btn-cerrar-modal">✕</button>
+        <h3>✏️ Editar Participante</h3>
+        
+        <div class="form-edicion-grid">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input 
+              v-model="participanteEditando.nombre" 
+              type="text" 
+              placeholder="Nombre"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Apellido *</label>
+            <input 
+              v-model="participanteEditando.apellido" 
+              type="text" 
+              placeholder="Apellido"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>CI</label>
+            <input 
+              v-model="participanteEditando.ci" 
+              type="text" 
+              placeholder="Cédula de Identidad"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Teléfono *</label>
+            <input 
+              v-model="participanteEditando.telefono" 
+              type="text" 
+              placeholder="Número de teléfono"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Correo</label>
+            <input 
+              v-model="participanteEditando.correo" 
+              type="email" 
+              placeholder="correo@ejemplo.com"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Zona</label>
+            <input 
+              v-model="participanteEditando.zona" 
+              type="text" 
+              placeholder="Zona de residencia"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Área</label>
+            <input 
+              v-model="participanteEditando.area" 
+              type="text" 
+              placeholder="Área"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Ocupación</label>
+            <input 
+              v-model="participanteEditando.ocupacion" 
+              type="text" 
+              placeholder="Ocupación"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Sexo</label>
+            <select v-model="participanteEditando.sexo" :disabled="guardandoEdicion">
+              <option value="">Seleccione...</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Fecha de Nacimiento</label>
+            <input 
+              v-model="participanteEditando.fechaNacimiento" 
+              type="date" 
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Empresa/Stand</label>
+            <select v-model="participanteEditando.empresaId" :disabled="guardandoEdicion">
+              <option :value="null">Sin empresa</option>
+              <option 
+                v-for="empresa in empresas" 
+                :key="empresa.id" 
+                :value="empresa.id"
+              >
+                {{ empresa.nombre }} ({{ empresa.cupoDisponible || 0 }}/{{ empresa.cupoTotal }} disponibles)
+              </option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Estado</label>
+            <select v-model="participanteEditando.estado" :disabled="guardandoEdicion">
+              <option value="pendiente">Pendiente</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="rechazado">Rechazado</option>
+            </select>
+          </div>
+          
+          <!-- Datos de Referencia -->
+          <div class="form-group full-width">
+            <h4 class="seccion-titulo">👥 Datos de Referencia (Opcional)</h4>
+          </div>
+          
+          <div class="form-group">
+            <label>Nombre de Referencia</label>
+            <input 
+              v-model="participanteEditando.nombreReferencia" 
+              type="text" 
+              placeholder="Nombre completo"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Parentesco</label>
+            <input 
+              v-model="participanteEditando.parentesco" 
+              type="text" 
+              placeholder="Ej: Padre, Madre, Hermano"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Teléfono de Referencia</label>
+            <input 
+              v-model="participanteEditando.celularReferencia" 
+              type="text" 
+              placeholder="Número de contacto"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+        </div>
+        
+        <div class="modal-acciones">
+          <button 
+            @click="cerrarEdicion" 
+            class="btn-cancelar"
+            :disabled="guardandoEdicion"
+          >
+            Cancelar
+          </button>
+          <button 
+            @click="guardarEdicion" 
+            class="btn-guardar"
+            :disabled="guardandoEdicion"
+          >
+            {{ guardandoEdicion ? '⏳ Guardando...' : '💾 Guardar Cambios' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal de Gestión de Empresas/Stands -->
     <div v-if="mostrarModalEmpresas" class="modal-overlay" @click="cerrarModalEmpresas">
       <div class="modal-empresas" @click.stop>
-        <button @click="cerrarModalEmpresas" class="btn-cerrar-modal">✕</button>
-        <h3>🏢 Gestión de Empresas/Stands</h3>
-        
+        <!-- Header del Modal -->
+        <div class="modal-header-empresas">
+          <div class="modal-title-empresas">
+            <span class="icono-modal">🏢</span>
+            <h3>Gestión de Empresas/Stands</h3>
+          </div>
+          <button @click="cerrarModalEmpresas" class="btn-cerrar-modal">✕</button>
+        </div>
+
         <!-- Formulario para agregar empresa -->
-        <div class="form-empresa">
-          <h4>➕ Agregar Nueva Empresa/Stand</h4>
+        <div class="form-empresa-card">
+          <div class="form-empresa-header">
+            <span class="icono-form">✨</span>
+            <h4>Agregar Nueva Empresa/Stand</h4>
+          </div>
           <div class="form-row-empresa">
-            <input 
-              v-model="nuevaEmpresa.nombre" 
-              type="text" 
-              placeholder="Nombre de la empresa/stand"
-              class="input-empresa"
-            />
-            <input 
-              v-model.number="nuevaEmpresa.cupoTotal" 
-              type="number" 
-              min="1"
-              placeholder="Cupo total"
-              class="input-cupo"
-            />
+            <div class="input-group-empresa">
+              <label>Nombre de la Empresa/Stand</label>
+              <input 
+                v-model="nuevaEmpresa.nombre" 
+                type="text" 
+                placeholder="Ej: Stand Artesanías La Paz"
+                class="input-empresa"
+                maxlength="100"
+              />
+            </div>
+            <div class="input-group-empresa">
+              <label>Cupo Total</label>
+              <input 
+                v-model.number="nuevaEmpresa.cupoTotal" 
+                type="number" 
+                min="1"
+                max="1000"
+                placeholder="0"
+                class="input-cupo"
+              />
+            </div>
             <button 
               @click="agregarEmpresa" 
               class="btn-agregar-empresa"
               :disabled="!nuevaEmpresa.nombre || !nuevaEmpresa.cupoTotal || guardandoEmpresa"
             >
-              {{ guardandoEmpresa ? '⏳' : '➕' }} AGREGAR
+              <span class="btn-icono">{{ guardandoEmpresa ? '⏳' : '➕' }}</span>
+              <span class="btn-texto">{{ guardandoEmpresa ? 'AGREGANDO...' : 'AGREGAR' }}</span>
             </button>
           </div>
         </div>
 
         <!-- Mensaje de operación -->
-        <div v-if="mensajeEmpresa" :class="['alerta-empresa', tipoMensajeEmpresa]">
-          {{ mensajeEmpresa }}
+        <transition name="fade">
+          <div v-if="mensajeEmpresa" :class="['alerta-empresa', tipoMensajeEmpresa === 'success' ? 'alerta-exito' : 'alerta-error']">
+            <span class="alerta-icono">{{ tipoMensajeEmpresa === 'success' ? '✅' : '⚠️' }}</span>
+            {{ mensajeEmpresa }}
+          </div>
+        </transition>
+
+        <!-- Barra de búsqueda y filtros -->
+        <div class="filtros-empresas">
+          <div class="busqueda-empresa-wrapper">
+            <span class="icono-busqueda">�</span>
+            <input 
+              v-model="busquedaEmpresa"
+              type="text" 
+              placeholder="Buscar empresa/stand..."
+              class="input-busqueda-empresa"
+            />
+          </div>
+          <select v-model="filtroEstadoEmpresa" class="select-filtro-estado-empresa">
+            <option value="">Todos los estados</option>
+            <option value="disponible">✅ Disponibles</option>
+            <option value="completo">🔴 Completos</option>
+          </select>
         </div>
 
-        <!-- Tabla de empresas -->
-        <div class="tabla-empresas-container">
-          <h4>📊 Empresas Registradas</h4>
-          
+        <!-- Estadísticas rápidas -->
+        <div class="stats-empresas">
+          <div class="stat-card-empresa">
+            <div class="stat-icono">🏢</div>
+            <div class="stat-info">
+              <div class="stat-numero">{{ empresasFiltradas.length }}</div>
+              <div class="stat-label">Total</div>
+            </div>
+          </div>
+          <div class="stat-card-empresa disponible">
+            <div class="stat-icono">✅</div>
+            <div class="stat-info">
+              <div class="stat-numero">{{ empresasDisponibles }}</div>
+              <div class="stat-label">Disponibles</div>
+            </div>
+          </div>
+          <div class="stat-card-empresa completo">
+            <div class="stat-icono">🔴</div>
+            <div class="stat-info">
+              <div class="stat-numero">{{ empresasCompletas }}</div>
+              <div class="stat-label">Completos</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla/Grid de empresas -->
+        <div class="tabla-empresas-wrapper">
           <div v-if="cargandoEmpresas" class="loading-empresas">
             <div class="spinner"></div>
             <p>Cargando empresas...</p>
           </div>
 
-          <table v-else-if="empresas.length > 0" class="tabla-empresas">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Cupo (Usado/Total)</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="empresa in empresas" :key="empresa.id">
-                <td>
-                  <span v-if="editandoEmpresa?.id !== empresa.id">
-                    {{ empresa.nombre }}
-                  </span>
-                  <input 
-                    v-else
-                    v-model="editandoEmpresa.nombre"
-                    type="text"
-                    class="input-editar-nombre"
-                  />
-                </td>
-                <td>
-                  <span v-if="editandoEmpresa?.id !== empresa.id">
-                    <strong>{{ empresa.cupoUsado || 0 }}</strong> / <strong>{{ empresa.cupoTotal }}</strong>
-                  </span>
-                  <input 
-                    v-else
-                    v-model.number="editandoEmpresa.cupoTotal"
-                    type="number"
-                    min="1"
-                    class="input-editar-cupo"
-                  />
-                  <div class="progress-bar">
-                    <div 
-                      class="progress-fill" 
-                      :style="{ width: `${empresa.porcentajeUso || 0}%` }"
-                      :class="{ 'completo': (empresa.porcentajeUso || 0) >= 100 }"
-                    ></div>
+          <!-- Vista de Lista (Responsive) -->
+          <div v-else-if="empresasFiltradas.length > 0" class="empresas-lista">
+            <div 
+              v-for="empresa in empresasFiltradas" 
+              :key="empresa.id" 
+              class="empresa-item"
+              :class="{ 'editando': editandoEmpresa?.id === empresa.id }"
+            >
+              <!-- Modo Vista Normal -->
+              <template v-if="editandoEmpresa?.id !== empresa.id">
+                <div class="empresa-info-principal">
+                  <span class="icono-empresa">🏪</span>
+                  <div class="empresa-nombre-estado">
+                    <h5 class="nombre-empresa-lista">{{ empresa.nombre }}</h5>
+                    <span :class="['badge-estado-lista', (empresa.cupoDisponible || 0) > 0 ? 'disponible' : 'completo']">
+                      {{ (empresa.cupoDisponible || 0) > 0 ? '✅ Disponible' : '🔴 Completo' }}
+                    </span>
                   </div>
-                </td>
-                <td>
-                  <span :class="['badge-estado-empresa', (empresa.cupoDisponible || 0) > 0 ? 'disponible' : 'completo']">
-                    {{ (empresa.cupoDisponible || 0) > 0 ? '✅ DISPONIBLE' : '🔴 COMPLETO' }}
-                  </span>
-                </td>
-                <td class="acciones-empresa-col">
-                  <template v-if="editandoEmpresa?.id === empresa.id">
-                    <button @click="guardarEdicion" class="btn-accion-empresa guardar" title="Guardar">
+                </div>
+
+                <div class="empresa-cupo-info">
+                  <div class="cupo-numeros-lista">
+                    <span class="cupo-usado">{{ empresa.cupoUsado || 0 }}</span>
+                    <span class="cupo-separador">/</span>
+                    <span class="cupo-total">{{ empresa.cupoTotal }}</span>
+                  </div>
+
+                  <div class="progress-wrapper-lista">
+                    <div class="progress-bar-lista">
+                      <div 
+                        class="progress-fill-lista" 
+                        :style="{ width: `${empresa.porcentajeUso || 0}%` }"
+                        :class="getProgressClass(empresa.porcentajeUso || 0)"
+                      ></div>
+                    </div>
+                    <span class="porcentaje-text">{{ Math.round(empresa.porcentajeUso || 0) }}%</span>
+                  </div>
+                </div>
+
+                <div class="empresa-acciones">
+                  <button @click="iniciarEdicion(empresa)" class="btn-lista-accion editar" title="Editar empresa">
+                    ✏️
+                  </button>
+                  <button @click="eliminarEmpresa(empresa.id, empresa.cupoUsado)" class="btn-lista-accion eliminar" title="Eliminar empresa">
+                    🗑️
+                  </button>
+                </div>
+              </template>
+
+              <!-- Modo Edición -->
+              <template v-else>
+                <div class="empresa-edit-lista">
+                  <div class="edit-info-principal">
+                    <span class="icono-edit">✏️</span>
+                    <div class="input-group-inline">
+                      <label>Nombre:</label>
+                      <input 
+                        v-model="editandoEmpresa.nombre"
+                        type="text"
+                        class="input-editar-nombre-lista"
+                        placeholder="Nombre de la empresa"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="edit-cupo-info">
+                    <div class="input-group-inline">
+                      <label>Cupo Total:</label>
+                      <input 
+                        v-model.number="editandoEmpresa.cupoTotal"
+                        type="number"
+                        min="1"
+                        class="input-editar-cupo-lista"
+                        placeholder="0"
+                      />
+                    </div>
+                    <small class="cupo-minimo-text">Mínimo: {{ editandoEmpresa.cupoUsado || 0 }}</small>
+                  </div>
+
+                  <div class="edit-acciones">
+                    <button @click="guardarEdicionEmpresa" class="btn-lista-accion guardar" title="Guardar cambios">
                       💾
                     </button>
-                    <button @click="cancelarEdicion" class="btn-accion-empresa cancelar" title="Cancelar">
+                    <button @click="cancelarEdicion" class="btn-lista-accion cancelar" title="Cancelar edición">
                       ✕
                     </button>
-                  </template>
-                  <template v-else>
-                    <button @click="iniciarEdicion(empresa)" class="btn-accion-empresa editar" title="Editar">
-                      ✏️
-                    </button>
-                    <button @click="eliminarEmpresa(empresa.id, empresa.cupoUsado)" class="btn-accion-empresa eliminar" title="Eliminar">
-                      🗑️
-                    </button>
-                  </template>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
 
           <div v-else class="sin-empresas">
-            <p>📭 No hay empresas/stands registrados</p>
+            <div class="sin-empresas-icono">📭</div>
+            <h4>No hay empresas/stands registrados</h4>
+            <p>Agrega tu primera empresa usando el formulario superior</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Confirmación de Eliminación -->
+    <div v-if="mostrarModalEliminar" class="modal-overlay" @click="cerrarModalEliminar">
+      <div class="modal-confirmacion-eliminar" @click.stop>
+        <div class="icono-advertencia">⚠️</div>
+        <h3 class="titulo-confirmacion">¿Eliminar Participante?</h3>
+        <p class="mensaje-confirmacion">
+          Estás a punto de eliminar a:
+        </p>
+        <div class="info-participante-eliminar" v-if="participanteEliminar">
+          <strong>{{ participanteEliminar.nombre }} {{ participanteEliminar.apellido }}</strong>
+          <span class="ci-eliminar">CI: {{ participanteEliminar.ci }}</span>
+        </div>
+        <p class="advertencia-eliminar">
+          ⚡ Esta acción no se puede deshacer
+        </p>
+        <div class="modal-acciones-eliminar">
+          <button @click="cerrarModalEliminar" class="btn-cancelar-eliminar">
+            ✕ Cancelar
+          </button>
+          <button @click="confirmarEliminarParticipante" class="btn-confirmar-eliminar">
+            🗑️ Sí, Eliminar
+          </button>
         </div>
       </div>
     </div>
@@ -316,9 +666,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { participanteService, empresaService } from '../services/api'
 import { generarCredencialPDF } from '../utils/credencialGenerator'
+import * as XLSX from 'xlsx'
 
 const participantes = ref([])
 const busqueda = ref('')
@@ -330,18 +681,64 @@ const mensaje = ref('')
 const mensajeTipo = ref('')
 const participanteSeleccionado = ref(null)
 
+// Variables para edición de participante
+const participanteEditando = ref(null)
+const guardandoEdicion = ref(false)
+
+// Variables de paginación
+const paginaActual = ref(1)
+const itemsPorPagina = ref(20)
+const totalPaginas = computed(() => Math.ceil(participantesFiltrados.value.length / itemsPorPagina.value))
+
 // Variables para gestión de empresas
 const mostrarModalEmpresas = ref(false)
+const mostrarModalEliminar = ref(false)
+const participanteEliminar = ref(null)
 const empresas = ref([])
 const cargandoEmpresas = ref(false)
 const guardandoEmpresa = ref(false)
 const mensajeEmpresa = ref('')
 const tipoMensajeEmpresa = ref('')
+const busquedaEmpresa = ref('')
+const filtroEstadoEmpresa = ref('')
 const nuevaEmpresa = ref({
   nombre: '',
   cupoTotal: null
 })
 const editandoEmpresa = ref(null)
+
+// Computed para empresas filtradas
+const empresasFiltradas = computed(() => {
+  let resultado = empresas.value
+  
+  // Filtro por búsqueda
+  if (busquedaEmpresa.value) {
+    const termino = busquedaEmpresa.value.toLowerCase()
+    resultado = resultado.filter(e => 
+      e.nombre.toLowerCase().includes(termino)
+    )
+  }
+  
+  // Filtro por estado
+  if (filtroEstadoEmpresa.value) {
+    if (filtroEstadoEmpresa.value === 'disponible') {
+      resultado = resultado.filter(e => (e.cupoDisponible || 0) > 0)
+    } else if (filtroEstadoEmpresa.value === 'completo') {
+      resultado = resultado.filter(e => (e.cupoDisponible || 0) === 0)
+    }
+  }
+  
+  return resultado
+})
+
+// Computed para estadísticas
+const empresasDisponibles = computed(() => {
+  return empresas.value.filter(e => (e.cupoDisponible || 0) > 0).length
+})
+
+const empresasCompletas = computed(() => {
+  return empresas.value.filter(e => (e.cupoDisponible || 0) === 0).length
+})
 
 const participantesFiltrados = computed(() => {
   let resultado = participantes.value
@@ -368,6 +765,37 @@ const participantesFiltrados = computed(() => {
   
   return resultado
 })
+
+// Participantes paginados
+const participantesPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina.value
+  const fin = inicio + itemsPorPagina.value
+  return participantesFiltrados.value.slice(inicio, fin)
+})
+
+// Funciones de paginación
+const cambiarPagina = (pagina) => {
+  if (pagina >= 1 && pagina <= totalPaginas.value) {
+    paginaActual.value = pagina
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+const paginaAnterior = () => {
+  cambiarPagina(paginaActual.value - 1)
+}
+
+const paginaSiguiente = () => {
+  cambiarPagina(paginaActual.value + 1)
+}
+
+// Mostrar solo páginas cercanas a la actual
+const mostrarNumeroPagina = (pagina) => {
+  if (totalPaginas.value <= 7) return true
+  if (pagina === 1 || pagina === totalPaginas.value) return true
+  if (Math.abs(pagina - paginaActual.value) <= 2) return true
+  return false
+}
 
 const cargarParticipantes = async () => {
   cargando.value = true
@@ -493,23 +921,182 @@ const cerrarModal = () => {
   participanteSeleccionado.value = null
 }
 
-const eliminarParticipante = async (id) => {
-  if (!confirm('¿Estás seguro de eliminar este participante?')) return
+// Exportar a Excel
+const exportarExcel = () => {
+  try {
+    // Preparar datos para exportar (usar datos filtrados actuales)
+    const datos = participantesFiltrados.value.map(p => ({
+      Nombre: p.nombre,
+      Apellido: p.apellido,
+      CI: p.ci || '',
+      Teléfono: p.telefono,
+      Correo: p.correo || '',
+      Zona: p.zona || '',
+      Área: p.area || '',
+      Ocupación: p.ocupacion || '',
+      Sexo: p.sexo || '',
+      'Fecha Nacimiento': p.fechaNacimiento || '',
+      Empresa: p.Empresa?.nombre || '',
+      Estado: p.estado,
+      'Nombre Referencia': p.nombreReferencia || '',
+      Parentesco: p.parentesco || '',
+      'Teléfono Referencia': p.celularReferencia || '',
+      Token: p.token,
+      'Fecha Registro': new Date(p.createdAt).toLocaleDateString()
+    }))
+
+    // Crear hoja de cálculo
+    const ws = XLSX.utils.json_to_sheet(datos)
+    
+    // Ajustar ancho de columnas
+    const colWidths = [
+      { wch: 15 }, // Nombre
+      { wch: 15 }, // Apellido
+      { wch: 12 }, // CI
+      { wch: 12 }, // Teléfono
+      { wch: 25 }, // Correo
+      { wch: 15 }, // Zona
+      { wch: 15 }, // Área
+      { wch: 20 }, // Ocupación
+      { wch: 10 }, // Sexo
+      { wch: 15 }, // Fecha Nacimiento
+      { wch: 25 }, // Empresa
+      { wch: 12 }, // Estado
+      { wch: 20 }, // Nombre Referencia
+      { wch: 15 }, // Parentesco
+      { wch: 15 }, // Teléfono Referencia
+      { wch: 40 }, // Token
+      { wch: 15 }  // Fecha Registro
+    ]
+    ws['!cols'] = colWidths
+
+    // Crear libro
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Participantes')
+
+    // Generar nombre de archivo con fecha
+    const fecha = new Date().toISOString().split('T')[0]
+    const nombreArchivo = `Participantes_FEIPOBOL_${fecha}.xlsx`
+
+    // Descargar archivo
+    XLSX.writeFile(wb, nombreArchivo)
+
+    mensaje.value = `✅ Excel exportado exitosamente: ${datos.length} participantes`
+    mensajeTipo.value = 'success'
+    setTimeout(() => {
+      mensaje.value = ''
+    }, 3000)
+  } catch (error) {
+    console.error('Error al exportar Excel:', error)
+    mensaje.value = '❌ Error al exportar a Excel'
+    mensajeTipo.value = 'error'
+  }
+}
+
+// Editar participante
+const editarParticipante = (participante) => {
+  participanteEditando.value = { 
+    ...participante,
+    empresaId: participante.Empresa?.id || null
+  }
+}
+
+const cerrarEdicion = () => {
+  participanteEditando.value = null
+}
+
+const guardarEdicion = async () => {
+  if (!participanteEditando.value) return
+  
+  // Validaciones básicas
+  if (!participanteEditando.value.nombre || !participanteEditando.value.apellido) {
+    mensaje.value = '❌ Nombre y apellido son obligatorios'
+    mensajeTipo.value = 'error'
+    return
+  }
+
+  if (!participanteEditando.value.telefono) {
+    mensaje.value = '❌ El teléfono es obligatorio'
+    mensajeTipo.value = 'error'
+    return
+  }
+
+  guardandoEdicion.value = true
 
   try {
-    const resultado = await participanteService.deleteParticipante(id)
-    
+    const datosActualizar = {
+      nombre: participanteEditando.value.nombre,
+      apellido: participanteEditando.value.apellido,
+      ci: participanteEditando.value.ci,
+      telefono: participanteEditando.value.telefono,
+      correo: participanteEditando.value.correo,
+      zona: participanteEditando.value.zona,
+      area: participanteEditando.value.area,
+      ocupacion: participanteEditando.value.ocupacion,
+      sexo: participanteEditando.value.sexo,
+      fechaNacimiento: participanteEditando.value.fechaNacimiento,
+      estado: participanteEditando.value.estado,
+      empresaId: participanteEditando.value.empresaId,
+      nombreReferencia: participanteEditando.value.nombreReferencia,
+      parentesco: participanteEditando.value.parentesco,
+      celularReferencia: participanteEditando.value.celularReferencia
+    }
+
+    const resultado = await participanteService.updateParticipante(
+      participanteEditando.value.id,
+      datosActualizar
+    )
+
     if (resultado.success) {
-      mensaje.value = 'Participante eliminado exitosamente'
+      mensaje.value = '✅ Participante actualizado exitosamente'
       mensajeTipo.value = 'success'
+      cerrarEdicion()
       cargarParticipantes()
     } else {
-      mensaje.value = 'Error al eliminar participante'
+      mensaje.value = '❌ Error al actualizar participante'
+      mensajeTipo.value = 'error'
+    }
+  } catch (error) {
+    console.error('Error al guardar edición:', error)
+    mensaje.value = `❌ Error: ${error.response?.data?.error || error.message}`
+    mensajeTipo.value = 'error'
+  } finally {
+    guardandoEdicion.value = false
+  }
+}
+
+const eliminarParticipante = (id) => {
+  // Buscar el participante para mostrar su información
+  const participante = participantesFiltrados.value.find(p => p.id === id)
+  if (participante) {
+    participanteEliminar.value = participante
+    mostrarModalEliminar.value = true
+  }
+}
+
+const cerrarModalEliminar = () => {
+  mostrarModalEliminar.value = false
+  participanteEliminar.value = null
+}
+
+const confirmarEliminarParticipante = async () => {
+  if (!participanteEliminar.value) return
+
+  try {
+    const resultado = await participanteService.deleteParticipante(participanteEliminar.value.id)
+    
+    if (resultado.success) {
+      mensaje.value = '✅ Participante eliminado exitosamente'
+      mensajeTipo.value = 'success'
+      cerrarModalEliminar()
+      cargarParticipantes()
+    } else {
+      mensaje.value = '❌ Error al eliminar participante'
       mensajeTipo.value = 'error'
     }
   } catch (error) {
     console.error('Error:', error)
-    mensaje.value = 'Error al eliminar participante'
+    mensaje.value = '❌ Error al eliminar participante'
     mensajeTipo.value = 'error'
   }
 }
@@ -537,6 +1124,14 @@ const generarCredencial = async (participante) => {
     empresaNombre,
     'PARTICIPANTE'
   )
+}
+
+// Helper para clases de barra de progreso
+const getProgressClass = (porcentaje) => {
+  if (porcentaje >= 100) return 'completo'
+  if (porcentaje >= 75) return 'alto'
+  if (porcentaje >= 50) return 'medio'
+  return 'bajo'
 }
 
 // Funciones de gestión de empresas
@@ -628,7 +1223,7 @@ const cancelarEdicion = () => {
   editandoEmpresa.value = null
 }
 
-const guardarEdicion = async () => {
+const guardarEdicionEmpresa = async () => {
   if (!editandoEmpresa.value.nombre || !editandoEmpresa.value.cupoTotal) {
     mensajeEmpresa.value = 'Por favor completa todos los campos'
     tipoMensajeEmpresa.value = 'error'
@@ -714,6 +1309,11 @@ const eliminarEmpresa = async (id, cupoUsado) => {
 
 onMounted(() => {
   cargarParticipantes()
+})
+
+// Resetear a página 1 cuando cambien los filtros
+watch([busqueda, filtroEmpresa, filtroEstado], () => {
+  paginaActual.value = 1
 })
 </script>
 
@@ -1285,54 +1885,25 @@ onMounted(() => {
 
 
 /* Modal Gestión de Empresas */
+/* ==================== MODAL DE GESTIÓN DE EMPRESAS/STANDS ==================== */
 .modal-empresas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
+  background: white;
+  border-radius: 20px;
+  padding: 0;
+  width: 95%;
+  max-width: 1100px;
+  max-height: 90vh;
+  overflow: hidden;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  padding: 15px;
-  backdrop-filter: blur(5px);
-  overflow-y: auto;
+  flex-direction: column;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.modal-empresas > div {
-  background: white;
-  border-radius: 15px;
-  padding: 25px;
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: slideDown 0.3s ease;
-  margin: auto;
-  position: relative;
-}
-
-.modal-empresas > div {
-  background: white;
-  border-radius: 15px;
-  padding: 25px;
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: slideDown 0.3s ease;
-  margin: auto;
-  position: relative;
-}
-
-@keyframes slideDown {
+@keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(-30px) scale(0.95);
+    transform: translateY(50px) scale(0.95);
   }
   to {
     opacity: 1;
@@ -1340,40 +1911,67 @@ onMounted(() => {
   }
 }
 
-.modal-empresas h3 {
-  margin: 0 0 20px 0;
-  color: #2c3e50;
-  font-size: 1.6rem;
+/* Header del Modal */
+.modal-header-empresas {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 25px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 20px 20px 0 0;
+}
+
+.modal-title-empresas {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-right: 40px;
+  gap: 12px;
+  color: white;
+}
+
+.icono-modal {
+  font-size: 2rem;
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.modal-title-empresas h3 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
 }
 
 .btn-cerrar-modal {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: none;
-  border: none;
-  font-size: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 1.5rem;
   cursor: pointer;
-  color: #6c757d;
-  padding: 0;
-  width: 40px;
-  height: 40px;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  z-index: 10;
+  font-weight: bold;
+  backdrop-filter: blur(10px);
 }
 
 .btn-cerrar-modal:hover {
-  background-color: #f8f9fa;
-  color: #dc3545;
+  background: rgba(255, 255, 255, 0.3);
   transform: rotate(90deg);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Contenido del Modal con scroll */
+.modal-empresas > div:not(.modal-header-empresas) {
+  padding: 25px 30px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .btn-gestionar-empresas {
@@ -1396,38 +1994,231 @@ onMounted(() => {
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
-/* Formulario de Agregar Empresa */
-.form-empresa {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 25px;
-  border: 2px solid #dee2e6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+/* Botón Exportar Excel */
+.btn-exportar-excel {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
 }
 
-.form-empresa h4 {
-  margin: 0 0 15px 0;
-  color: #495057;
-  font-size: 1.1rem;
+.btn-exportar-excel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.btn-exportar-excel:active {
+  transform: translateY(0);
+}
+
+/* Modal de Edición */
+.modal-contenido.modal-edicion {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-contenido.modal-edicion h3 {
+  color: #f59e0b;
+  margin-bottom: 25px;
+  font-size: 1.5rem;
+  text-align: center;
+  border-bottom: 2px solid #fbbf24;
+  padding-bottom: 15px;
+}
+
+.form-edicion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
   font-weight: 600;
+  margin-bottom: 8px;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 15px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.seccion-titulo {
+  color: #6b7280;
+  font-size: 1.1rem;
+  margin: 0;
+  padding: 10px 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding-top: 20px;
+  border-top: 2px solid #e5e7eb;
+}
+
+.btn-cancelar {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancelar:hover {
+  background: #4b5563;
+  transform: translateY(-2px);
+}
+
+.btn-cancelar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-guardar {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.btn-guardar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive para modal de edición */
+@media (max-width: 768px) {
+  .form-edicion-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-contenido.modal-edicion {
+    max-width: 95%;
+    padding: 20px;
+  }
+  
+  .modal-acciones {
+    flex-direction: column;
+  }
+  
+  .btn-cancelar,
+  .btn-guardar {
+    width: 100%;
+  }
+}
+
+/* Formulario de Agregar Empresa */
+.form-empresa-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 25px;
+  border-radius: 15px;
+  margin-bottom: 25px;
+  border: 2px solid #dee2e6;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.form-empresa-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.icono-form {
+  font-size: 1.5rem;
+}
+
+.form-empresa-header h4 {
+  margin: 0;
+  color: #495057;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
 .form-row-empresa {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
-  gap: 12px;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 15px;
   align-items: end;
+}
+
+.input-group-empresa {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group-empresa label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
 }
 
 .input-empresa,
 .input-cupo {
-  padding: 12px 16px;
+  padding: 14px 18px;
   border: 2px solid #dee2e6;
-  border-radius: 8px;
-  font-size: 0.95rem;
+  border-radius: 10px;
+  font-size: 1rem;
   transition: all 0.3s ease;
-  width: 100%;
   background: white;
 }
 
@@ -1436,310 +2227,614 @@ onMounted(() => {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .input-cupo {
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.1rem;
 }
 
 .btn-agregar-empresa {
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   white-space: nowrap;
-  height: 46px;
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+  height: 52px;
 }
 
 .btn-agregar-empresa:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
 }
 
 .btn-agregar-empresa:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-/* Mensajes de Alerta */
-.alerta-empresa {
-  padding: 12px 20px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 500;
-  animation: fadeIn 0.3s ease;
+.btn-icono {
+  font-size: 1.2rem;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.alerta-empresa.alerta-exito {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.alerta-empresa.alerta-error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-/* Tabla de Empresas */
-.tabla-empresas-container {
-  background-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.tabla-empresas {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.tabla-empresas thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.tabla-empresas th {
-  padding: 15px;
-  text-align: left;
-  font-weight: 600;
+.btn-texto {
   font-size: 0.95rem;
 }
 
-.tabla-empresas tbody tr {
-  border-bottom: 1px solid #dee2e6;
-  transition: background-color 0.2s ease;
-}
-
-.tabla-empresas tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-.tabla-empresas td {
-  padding: 15px;
-  color: #495057;
-}
-
-/* Inputs de Edición Inline */
-.input-editar-nombre,
-.input-editar-cupo {
-  padding: 8px 12px;
-  border: 2px solid #667eea;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  width: 100%;
-  background-color: #f0f3ff;
-}
-
-.input-editar-nombre:focus,
-.input-editar-cupo:focus {
-  outline: none;
-  border-color: #764ba2;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-}
-
-.input-editar-cupo {
-  text-align: center;
-  max-width: 80px;
-}
-
-/* Progress Bar de Cupo */
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background-color: #e9ecef;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-top: 5px;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #ffc107 75%, #dc3545 100%);
-  border-radius: 10px;
-  transition: width 0.3s ease;
-}
-
-.cupo-info {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.cupo-texto {
-  font-weight: 600;
-  color: #495057;
-  font-size: 0.9rem;
-}
-
-/* Badges de Estado */
-.badge-estado-empresa {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  display: inline-block;
-  text-transform: uppercase;
-}
-
-.badge-estado-empresa.disponible {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.badge-estado-empresa.completo {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-/* Botones de Acción */
-.acciones-empresa {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.btn-accion-empresa {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.85rem;
+/* Alertas */
+.alerta-empresa {
+  padding: 15px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 12px;
+  font-weight: 600;
+  animation: slideInLeft 0.3s ease;
 }
 
-.btn-accion-empresa.btn-editar {
-  background-color: #007bff;
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.alerta-icono {
+  font-size: 1.3rem;
+}
+
+.alerta-exito {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #155724;
+  border: 2px solid #b1dfbb;
+}
+
+.alerta-error {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  color: #721c24;
+  border: 2px solid #f1b0b7;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* Filtros y Búsqueda */
+.filtros-empresas {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.busqueda-empresa-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.icono-busqueda {
+  position: absolute;
+  left: 15px;
+  font-size: 1.2rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.input-busqueda-empresa {
+  width: 100%;
+  padding: 14px 18px 14px 45px;
+  border: 2px solid #dee2e6;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.input-busqueda-empresa:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.select-filtro-estado-empresa {
+  padding: 14px 18px;
+  border: 2px solid #dee2e6;
+  border-radius: 10px;
+  font-size: 1rem;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.select-filtro-estado-empresa:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+/* Estadísticas */
+.stats-empresas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.stat-card-empresa {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border: 2px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.stat-card-empresa:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card-empresa.disponible {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border-color: #b1dfbb;
+}
+
+.stat-card-empresa.completo {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  border-color: #f1b0b7;
+}
+
+.stat-icono {
+  font-size: 2.5rem;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-numero {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #212529;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* Grid de Empresas */
+.tabla-empresas-wrapper {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 15px;
+  border: 2px solid #dee2e6;
+}
+
+.empresas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empresa-item {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 2px solid #dee2e6;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.empresa-item:hover:not(.editando) {
+  border-color: #667eea;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+}
+
+.empresa-item.editando {
+  border-color: #ffc107;
+  box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.2);
+}
+
+/* Info Principal (Izquierda) */
+.empresa-info-principal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.icono-empresa {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.empresa-nombre-estado {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nombre-empresa-lista {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.badge-estado-lista {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.badge-estado-lista.disponible {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   color: white;
 }
 
-.btn-accion-empresa.btn-editar:hover {
-  background-color: #0056b3;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
-}
-
-.btn-accion-empresa.btn-guardar {
-  background-color: #28a745;
+.badge-estado-lista.completo {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
   color: white;
 }
 
-.btn-accion-empresa.btn-guardar:hover {
-  background-color: #218838;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+/* Cupo Info (Centro) */
+.empresa-cupo-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 250px;
 }
 
-.btn-accion-empresa.btn-cancelar {
-  background-color: #6c757d;
+.cupo-numeros-lista {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.cupo-usado {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #667eea;
+}
+
+.cupo-separador {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #6c757d;
+}
+
+.cupo-total {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #6c757d;
+}
+
+.progress-wrapper-lista {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-bar-lista {
+  flex: 1;
+  height: 10px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-fill-lista {
+  height: 100%;
+  border-radius: 10px;
+  transition: all 0.5s ease;
+}
+
+.progress-fill-lista.bajo {
+  background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+}
+
+.progress-fill-lista.medio {
+  background: linear-gradient(90deg, #20c997 0%, #ffc107 100%);
+}
+
+.progress-fill-lista.alto {
+  background: linear-gradient(90deg, #ffc107 0%, #fd7e14 100%);
+}
+
+.progress-fill-lista.completo {
+  background: linear-gradient(90deg, #fd7e14 0%, #dc3545 100%);
+}
+
+.porcentaje-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #495057;
+  min-width: 45px;
+  text-align: right;
+}
+
+/* Acciones (Derecha) */
+.empresa-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-lista-accion {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-lista-accion.editar {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
   color: white;
+  box-shadow: 0 3px 8px rgba(0, 123, 255, 0.3);
 }
 
-.btn-accion-empresa.btn-cancelar:hover {
-  background-color: #545b62;
-  transform: translateY(-2px);
+.btn-lista-accion.editar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 12px rgba(0, 123, 255, 0.4);
 }
 
-.btn-accion-empresa.btn-eliminar {
-  background-color: #dc3545;
+.btn-lista-accion.eliminar {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
   color: white;
+  box-shadow: 0 3px 8px rgba(220, 53, 69, 0.3);
 }
 
-.btn-accion-empresa.btn-eliminar:hover {
-  background-color: #c82333;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+.btn-lista-accion.eliminar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 12px rgba(220, 53, 69, 0.4);
 }
 
-.btn-accion-empresa:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
+.btn-lista-accion.guardar {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
 }
 
-/* Mensaje Sin Empresas */
+.btn-lista-accion.guardar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 12px rgba(40, 167, 69, 0.4);
+}
+
+.btn-lista-accion.cancelar {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+  box-shadow: 0 3px 8px rgba(108, 117, 125, 0.3);
+}
+
+.btn-lista-accion.cancelar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 12px rgba(108, 117, 125, 0.4);
+}
+
+/* Modo Edición Lista */
+.empresa-edit-lista {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.edit-info-principal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.icono-edit {
+  font-size: 1.5rem;
+}
+
+.input-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.input-group-inline label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.input-editar-nombre-lista,
+.input-editar-cupo-lista {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.edit-cupo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.cupo-minimo-text {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-left: 80px;
+}
+
+.edit-acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.input-editar-nombre-lista:focus,
+.input-editar-cupo-lista:focus {
+  outline: none;
+  border-color: #ff9800;
+  box-shadow: 0 0 0 4px rgba(255, 193, 7, 0.2);
+}
+
+.input-editar-cupo-lista {
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.cupo-minimo-text {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* Sin Empresas */
 .sin-empresas {
   text-align: center;
-  padding: 40px 20px;
+  padding: 60px 20px;
   color: #6c757d;
+}
+
+.sin-empresas-icono {
+  font-size: 5rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.sin-empresas h4 {
+  margin: 0 0 10px 0;
+  font-size: 1.3rem;
+  color: #495057;
 }
 
 .sin-empresas p {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  color: #6c757d;
 }
 
-/* Responsive para Modal de Empresas */
+/* Loading */
+.loading-empresas {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.loading-empresas .spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #667eea;
+  margin: 0 auto 20px;
+}
+
+.loading-empresas p {
+  color: #6c757d;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* ==================== RESPONSIVE MODAL EMPRESAS ==================== */
 @media (max-width: 1024px) {
-  .modal-empresas > div {
-    max-width: 700px;
-    padding: 20px;
+  .modal-empresas {
+    width: 90%;
+    max-width: 800px;
+  }
+
+  .empresas-lista {
+    gap: 12px;
   }
 
   .form-row-empresa {
-    grid-template-columns: 1fr 120px auto;
+    grid-template-columns: 1fr 130px auto;
+  }
+
+  .stats-empresas {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
   }
 }
 
 @media (max-width: 768px) {
   .modal-empresas {
-    padding: 10px;
-    align-items: flex-start;
-  }
-
-  .modal-empresas > div {
-    padding: 20px 15px;
+    width: 100%;
     max-height: 95vh;
-    margin-top: 10px;
-    border-radius: 12px;
+    border-radius: 15px 15px 0 0;
   }
 
-  .modal-empresas h3 {
-    font-size: 1.3rem;
-    margin-bottom: 15px;
-    padding-right: 35px;
+  .modal-header-empresas {
+    padding: 20px 20px;
+  }
+
+  .modal-title-empresas h3 {
+    font-size: 1.4rem;
+  }
+
+  .icono-modal {
+    font-size: 1.5rem;
   }
 
   .btn-cerrar-modal {
-    top: 15px;
-    right: 15px;
-    width: 35px;
-    height: 35px;
-    font-size: 24px;
+    width: 38px;
+    height: 38px;
+    font-size: 1.3rem;
   }
 
-  .form-empresa {
-    padding: 15px;
-    margin-bottom: 20px;
+  .modal-empresas > div:not(.modal-header-empresas) {
+    padding: 20px;
   }
 
-  .form-empresa h4 {
-    font-size: 1rem;
+  .form-empresa-card {
+    padding: 20px;
   }
 
   .form-row-empresa {
@@ -1749,194 +2844,492 @@ onMounted(() => {
 
   .btn-agregar-empresa {
     width: 100%;
-    height: 44px;
-    font-size: 0.9rem;
+    justify-content: center;
   }
 
-  .tabla-empresas-container {
-    overflow-x: auto;
-    margin: 0 -15px;
-    padding: 0 15px;
+  .filtros-empresas {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
-  .tabla-empresas-container h4 {
-    font-size: 1rem;
+  .stats-empresas {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
   }
 
-  .tabla-empresas {
-    min-width: 600px;
-    font-size: 0.85rem;
-  }
-
-  .tabla-empresas th,
-  .tabla-empresas td {
-    padding: 10px 8px;
-  }
-
-  .btn-accion-empresa {
-    padding: 6px 10px;
-    font-size: 1.1rem;
-    min-width: 35px;
-  }
-
-  .input-editar-nombre,
-  .input-editar-cupo {
-    font-size: 0.85rem;
-    padding: 6px 10px;
-  }
-}
-
-@media (max-width: 640px) {
-  .modal-empresas > div {
-    padding: 15px 12px;
-    border-radius: 10px;
-  }
-
-  .modal-empresas h3 {
-    font-size: 1.15rem;
+  .stat-card-empresa {
+    padding: 15px 10px;
+    flex-direction: column;
+    text-align: center;
     gap: 8px;
   }
 
-  .form-empresa {
-    padding: 12px;
+  .stat-icono {
+    font-size: 2rem;
   }
 
-  .input-empresa,
-  .input-cupo {
-    padding: 10px 12px;
-    font-size: 0.9rem;
+  .stat-numero {
+    font-size: 1.5rem;
   }
 
-  .btn-agregar-empresa {
-    padding: 10px 16px;
-    font-size: 0.85rem;
+  .stat-label {
+    font-size: 0.75rem;
   }
 
-  .tabla-empresas {
-    font-size: 0.8rem;
+  .empresas-lista {
+    gap: 10px;
   }
 
-  .badge-estado-empresa {
-    font-size: 0.7rem;
-    padding: 3px 8px;
+  .empresa-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .empresa-info-principal {
+    min-width: auto;
+  }
+
+  .empresa-cupo-info {
+    min-width: auto;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .cupo-numeros-lista {
+    justify-content: center;
+  }
+
+  .progress-wrapper-lista {
+    width: 100%;
+  }
+
+  .porcentaje-text {
+    text-align: center;
+  }
+
+  .empresa-acciones {
+    justify-content: center;
+  }
+
+  .edit-info-principal {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .input-group-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .edit-cupo-info {
+    margin-top: 10px;
+  }
+
+  .cupo-minimo-text {
+    margin-left: 0;
+    text-align: center;
+  }
+
+  .edit-acciones {
+    justify-content: center;
+  }
+
+  .tabla-empresas-wrapper {
+    padding: 15px;
   }
 }
 
 @media (max-width: 480px) {
-  .modal-empresas {
-    padding: 5px;
+  .modal-header-empresas {
+    padding: 18px 15px;
   }
 
-  .modal-empresas > div {
-    padding: 15px 10px;
-    max-height: 98vh;
-    border-radius: 8px;
+  .modal-title-empresas h3 {
+    font-size: 1.2rem;
   }
 
-  .modal-empresas h3 {
-    font-size: 1.05rem;
-    margin-bottom: 12px;
+  .icono-modal {
+    font-size: 1.3rem;
   }
 
   .btn-cerrar-modal {
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    font-size: 20px;
+    width: 35px;
+    height: 35px;
+    font-size: 1.2rem;
   }
 
-  .form-empresa {
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 15px;
+  .modal-empresas > div:not(.modal-header-empresas) {
+    padding: 15px;
   }
 
-  .form-empresa h4 {
-    font-size: 0.95rem;
-    margin-bottom: 10px;
+  .form-empresa-card {
+    padding: 15px;
   }
 
-  .form-row-empresa {
-    gap: 10px;
-  }
-
-  .input-empresa,
-  .input-cupo {
-    padding: 9px 10px;
-    font-size: 0.85rem;
-    border-radius: 6px;
-  }
-
-  .btn-agregar-empresa {
-    height: 40px;
-    font-size: 0.8rem;
-    padding: 8px 14px;
-  }
-
-  .tabla-empresas-container {
-    margin: 0 -10px;
-    padding: 0 10px;
-  }
-
-  .tabla-empresas-container h4 {
-    font-size: 0.95rem;
-    margin-bottom: 10px;
-  }
-
-  .tabla-empresas {
-    min-width: 550px;
-    font-size: 0.75rem;
-  }
-
-  .tabla-empresas th,
-  .tabla-empresas td {
-    padding: 8px 6px;
-  }
-
-  .btn-accion-empresa {
-    padding: 5px 8px;
+  .form-empresa-header h4 {
     font-size: 1rem;
-    min-width: 32px;
-  }
-
-  .progress-bar {
-    height: 4px;
-  }
-
-  .alerta-empresa {
-    padding: 10px 12px;
-    font-size: 0.85rem;
-    margin-bottom: 15px;
-  }
-}
-
-@media (max-width: 375px) {
-  .modal-empresas > div {
-    padding: 12px 8px;
-  }
-
-  .modal-empresas h3 {
-    font-size: 1rem;
-  }
-
-  .form-empresa {
-    padding: 8px;
-  }
-
-  .form-empresa h4 {
-    font-size: 0.9rem;
   }
 
   .input-empresa,
   .input-cupo,
+  .input-busqueda-empresa,
+  .select-filtro-estado-empresa {
+    padding: 12px 15px;
+    font-size: 0.95rem;
+  }
+
   .btn-agregar-empresa {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+
+  .stats-empresas {
+    gap: 8px;
+  }
+
+  .stat-card-empresa {
+    padding: 12px 8px;
+  }
+
+  .stat-icono {
+    font-size: 1.8rem;
+  }
+
+  .stat-numero {
+    font-size: 1.3rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .cupo-usado {
+    font-size: 2rem;
+  }
+
+  .cupo-total,
+  .cupo-separador {
+    font-size: 1.6rem;
+  }
+
+  .empresa-card-footer {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .btn-card-accion {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .sin-empresas {
+    padding: 40px 15px;
+  }
+
+  .sin-empresas-icono {
+    font-size: 4rem;
+  }
+
+  .sin-empresas h4 {
+    font-size: 1.1rem;
+  }
+
+  .sin-empresas p {
+    font-size: 0.9rem;
+  }
+}
+
+/* ==================== PAGINACIÓN ==================== */
+.info-paginacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.info-paginacion p {
+  margin: 0;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.select-items-pagina {
+  padding: 8px 12px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select-items-pagina:hover {
+  border-color: #667eea;
+}
+
+.select-items-pagina:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.paginacion {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 25px 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.btn-pagina {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-pagina:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-pagina:disabled {
+  background: linear-gradient(135deg, #adb5bd 0%, #868e96 100%);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.numeros-pagina {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.btn-numero-pagina {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #dee2e6;
+  background: white;
+  color: #495057;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-numero-pagina:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-2px);
+}
+
+.btn-numero-pagina.activo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+/* Responsive paginación */
+@media (max-width: 768px) {
+  .info-paginacion {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 15px;
+  }
+
+  .info-paginacion p {
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .select-items-pagina {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .paginacion {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px 15px;
+  }
+
+  .btn-pagina {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+  }
+
+  .btn-numero-pagina {
+    width: 35px;
+    height: 35px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .numeros-pagina {
+    gap: 3px;
+  }
+
+  .btn-numero-pagina {
+    width: 32px;
+    height: 32px;
     font-size: 0.8rem;
   }
 
-  .tabla-empresas {
-    min-width: 500px;
-    font-size: 0.7rem;
+  .btn-pagina {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Modal de Confirmación de Eliminación */
+.modal-confirmacion-eliminar {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: bounceIn 0.5s ease-out;
+  text-align: center;
+}
+
+.icono-advertencia {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.titulo-confirmacion {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #dc3545;
+  margin-bottom: 16px;
+}
+
+.mensaje-confirmacion {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.info-participante-eliminar {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.info-participante-eliminar p {
+  margin: 8px 0;
+  font-size: 1rem;
+}
+
+.info-participante-eliminar strong {
+  color: #333;
+}
+
+.ci-eliminar {
+  color: #666;
+}
+
+.advertencia-eliminar {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  border-radius: 4px;
+}
+
+.advertencia-eliminar p {
+  margin: 0;
+  color: #856404;
+  font-size: 0.9rem;
+}
+
+.modal-acciones-eliminar {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-cancelar-eliminar,
+.btn-confirmar-eliminar {
+  padding: 12px 32px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-cancelar-eliminar {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-cancelar-eliminar:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-confirmar-eliminar {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-confirmar-eliminar:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(-100px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1) translateY(0);
   }
 }
 </style>

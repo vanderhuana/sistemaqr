@@ -3,13 +3,16 @@ import { ref, computed } from 'vue'
 import axios from 'axios'
 
 // Configurar axios
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+// En desarrollo usa proxy de Vite (/api -> https://localhost:3443)
+// En producción usa variable de entorno o ruta relativa
+const API_URL = import.meta.env.VITE_API_URL || ''
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: false
 })
 
 // Interceptor para agregar el token a las requests
@@ -26,9 +29,17 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expirado o inválido
+      // Token expirado o inválido - destruir sesión completamente
+      console.warn('⚠️ Token expirado o inválido - cerrando sesión (auth store)')
+      
+      // Limpiar localStorage
       localStorage.removeItem('sisqr_token')
       localStorage.removeItem('sisqr_user')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      localStorage.removeItem('refreshToken')
+      
+      // Redirigir al login
       window.location.href = '/login'
     }
     return Promise.reject(error)
@@ -62,7 +73,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     
     try {
-      const response = await api.post('/auth/login', credentials)
+      const response = await api.post('/api/auth/login', credentials)
       
       if (response.data.success) {
         token.value = response.data.token
@@ -85,11 +96,20 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = () => {
+    console.log('🚪 Cerrando sesión...')
+    
+    // Limpiar estado
     user.value = null
     token.value = null
     
+    // Limpiar localStorage (todas las variantes)
     localStorage.removeItem('sisqr_token')
     localStorage.removeItem('sisqr_user')
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('refreshToken')
+    
+    console.log('✅ Sesión cerrada y localStorage limpiado')
     
     // Redireccionar al login
     window.location.href = '/login'

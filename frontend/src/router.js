@@ -5,6 +5,7 @@ import VentaView from './views/VentaView.vue'
 import StaffView from './views/StaffView.vue'
 import RegistroTrabajador from './views/RegistroTrabajador.vue'
 import RegistroParticipante from './views/RegistroParticipante.vue'
+import RegistroFeipobol from './views/RegistroFeipobol.vue'
 import DashboardAdmin from './components/DashboardAdmin.vue'
 import DashboardVendedor from './components/DashboardVendedor.vue'
 import DashboardControl from './components/DashboardControl.vue'
@@ -20,6 +21,7 @@ const routes = [
   { path: '/staff', component: StaffView },
   { path: '/registro-trabajador', component: RegistroTrabajador },
   { path: '/registro-participante', component: RegistroParticipante },
+  { path: '/registro-feipobol', component: RegistroFeipobol },
   { 
     path: '/generar-entradas', 
     component: GeneradorQREntradas, 
@@ -45,7 +47,10 @@ router.beforeEach((to, from, next) => {
     console.log('📦 Usuario en localStorage:', storedUser)
     usuario = JSON.parse(storedUser || 'null')
     console.log('👤 Usuario parseado:', usuario)
-    console.log('🎭 Rol del usuario:', usuario?.role)
+    
+    // IMPORTANTE: El rol puede estar en 'role' (inglés) o 'rol' (español)
+    const userRole = usuario?.role || usuario?.rol
+    console.log('🎭 Rol del usuario:', userRole)
   } catch (e) {
     console.error('❌ Error parseando usuario:', e)
     usuario = null
@@ -60,17 +65,20 @@ router.beforeEach((to, from, next) => {
     return next('/login')
   }
 
+  // Obtener el rol del usuario (soportar ambas variantes)
+  const userRole = usuario?.role || usuario?.rol
+
   // Verificar rol específico requerido
-  if (to.meta.requiresRole && usuario?.role !== to.meta.requiresRole) {
-    console.log('⚠️ Rol incorrecto. Esperado:', to.meta.requiresRole, 'Actual:', usuario?.role)
+  if (to.meta.requiresRole && userRole !== to.meta.requiresRole) {
+    console.log('⚠️ Rol incorrecto. Esperado:', to.meta.requiresRole, 'Actual:', userRole)
     // Redirigir según el rol del usuario
-    if (usuario?.role === 'admin') {
+    if (userRole === 'admin') {
       console.log('➡️ Redirigiendo admin a /dashboard')
       return next('/dashboard')
-    } else if (usuario?.role === 'vendedor') {
+    } else if (userRole === 'vendedor') {
       console.log('➡️ Redirigiendo vendedor a /vendedor')
       return next('/vendedor')
-    } else if (usuario?.role === 'control') {
+    } else if (userRole === 'control') {
       console.log('➡️ Redirigiendo control a /control')
       return next('/control')
     }
@@ -79,20 +87,20 @@ router.beforeEach((to, from, next) => {
   }
 
   // Verificar roles permitidos (para rutas con allowedRoles)
-  if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(usuario?.role)) {
-    console.log('⚠️ Rol no permitido. Permitidos:', to.meta.allowedRoles, 'Actual:', usuario?.role)
-    if (usuario?.role === 'admin') {
+  if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(userRole)) {
+    console.log('⚠️ Rol no permitido. Permitidos:', to.meta.allowedRoles, 'Actual:', userRole)
+    if (userRole === 'admin') {
       return next('/dashboard')
-    } else if (usuario?.role === 'vendedor') {
+    } else if (userRole === 'vendedor') {
       return next('/vendedor')
-    } else if (usuario?.role === 'control') {
+    } else if (userRole === 'control') {
       return next('/control')
     }
     return next('/')
   }
 
   // Compatibilidad con meta antigua
-  if (to.meta.requiresVendedor && usuario?.role !== 'vendedor') {
+  if (to.meta.requiresVendedor && userRole !== 'vendedor') {
     console.log('⛔ RequiresVendedor pero no es vendedor, redirigiendo a /')
     return next('/')
   }

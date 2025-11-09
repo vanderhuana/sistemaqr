@@ -38,6 +38,7 @@ const requireRole = (allowedRoles) => {
 const requireAdmin = requireRole('admin');
 const requireVendedor = requireRole(['admin', 'vendedor']);
 const requireControl = requireRole(['admin', 'control']);
+const requireAdminOrControl = requireRole(['admin', 'control']);
 
 // Middleware que permite a admin + cualquier otro rol específico
 const requireAdminOr = (role) => requireRole(['admin', role]);
@@ -134,6 +135,7 @@ module.exports = {
   requireAdmin,
   requireVendedor,
   requireControl,
+  requireAdminOrControl,
   requireAdminOr,
   requireOwnershipOrAdmin,
   logRoleAccess,

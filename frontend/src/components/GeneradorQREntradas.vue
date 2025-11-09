@@ -61,6 +61,75 @@
       </div>
     </div>
 
+    <!-- Sección de Validaciones -->
+    <div v-if="!generando" class="seccion-validaciones">
+      <div class="header-validaciones">
+        <h3>📊 Validaciones de Códigos QR</h3>
+        <div class="controles-validaciones">
+          <select v-model="filtroValidacion" class="filtro-validacion">
+            <option value="todas">📋 Todas las validaciones</option>
+            <option value="exitosas">✅ Validaciones exitosas</option>
+            <option value="fallidas">❌ Validaciones fallidas</option>
+            <option value="ya_usado">🔁 QR ya utilizado</option>
+            <option value="invalido">⚠️ QR inválido</option>
+          </select>
+          <button @click="cargarValidaciones" class="btn-recargar" :disabled="cargandoValidaciones">
+            <span v-if="!cargandoValidaciones">🔄 Actualizar</span>
+            <span v-else>⏳ Cargando...</span>
+          </button>
+          <button @click="exportarValidacionesExcel" class="btn-excel" :disabled="validaciones.length === 0">
+            📊 Exportar a Excel
+          </button>
+        </div>
+      </div>
+
+      <div v-if="cargandoValidaciones" class="loading-validaciones">
+        <div class="spinner-small"></div>
+        <p>Cargando validaciones...</p>
+      </div>
+
+      <div v-else-if="validacionesFiltradas.length > 0" class="tabla-validaciones">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha y Hora</th>
+              <th>Ticket #</th>
+              <th>Estado</th>
+              <th>Resultado</th>
+              <th>Validado Por</th>
+              <th>Ubicación</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="val in validacionesFiltradas.slice(0, 50)" :key="val.id">
+              <td>{{ formatearFecha(val.validatedAt) }}</td>
+              <td>{{ val.Ticket?.numero || 'N/A' }}</td>
+              <td>
+                <span :class="['badge-estado', val.isValid ? 'exitoso' : 'fallido']">
+                  {{ val.isValid ? '✅ Válido' : '❌ Inválido' }}
+                </span>
+              </td>
+              <td>
+                <span :class="['badge-resultado', getClaseResultado(val.validationResult)]">
+                  {{ getTextoResultado(val.validationResult) }}
+                </span>
+              </td>
+              <td>{{ val.Validator?.nombre || 'Sistema' }}</td>
+              <td>{{ val.location || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="validacionesFiltradas.length > 50" class="mas-validaciones">
+          Mostrando 50 de {{ validacionesFiltradas.length }} validaciones. <strong>Exporta a Excel para ver todas.</strong>
+        </p>
+      </div>
+
+      <div v-else class="sin-validaciones">
+        <p>📭 No hay validaciones registradas aún</p>
+        <small>Los escaneos de QR aparecerán aquí automáticamente</small>
+      </div>
+    </div>
+
     <!-- Resultado: Entradas generadas -->
     <div v-if="entradas && entradas.length > 0 && !generando" class="resultado">
       <div class="header-resultado">
@@ -98,10 +167,11 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, computed, onMounted } from 'vue';
 import api from '../services/api';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
 
 const cantidad = ref(50);
 const tipo = ref('entrada_general');
@@ -110,6 +180,11 @@ const entradas = ref([]);
 const alerta = ref({ mensaje: '', tipo: '' });
 const progresoMensaje = ref('');
 const progresoActual = ref(0);
+
+// Estado para validaciones
+const validaciones = ref([]);
+const cargandoValidaciones = ref(false);
+const filtroValidacion = ref('todas');
 
 const mostrarAlerta = (mensaje, tipo) => {
   alerta.value = { mensaje, tipo };
@@ -338,6 +413,148 @@ const descargarPDF = async () => {
     progresoMensaje.value = '';
   }
 };
+
+// === FUNCIONES PARA VALIDACIONES ===
+
+const validacionesFiltradas = computed(() => {
+  if (filtroValidacion.value === 'todas') {
+    return validaciones.value;
+  } else if (filtroValidacion.value === 'exitosas') {
+    return validaciones.value.filter(v => v.isValid);
+  } else if (filtroValidacion.value === 'fallidas') {
+    return validaciones.value.filter(v => !v.isValid);
+  } else if (filtroValidacion.value === 'ya_usado') {
+    return validaciones.value.filter(v => v.validationResult === 'already_used');
+  } else if (filtroValidacion.value === 'invalido') {
+    return validaciones.value.filter(v => v.validationResult === 'invalid_qr');
+  }
+  return validaciones.value;
+});
+
+const cargarValidaciones = async () => {
+  try {
+    cargandoValidaciones.value = true;
+    const response = await api.get('/api/events/validations');
+    
+    if (response.data && response.data.validations) {
+      validaciones.value = response.data.validations;
+    }
+  } catch (error) {
+    console.error('Error cargando validaciones:', error);
+    mostrarAlerta('Error al cargar validaciones', 'error');
+  } finally {
+    cargandoValidaciones.value = false;
+  }
+};
+
+const formatearFecha = (fecha) => {
+  if (!fecha) return '-';
+  const date = new Date(fecha);
+  return date.toLocaleString('es-BO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+const getClaseResultado = (resultado) => {
+  const clases = {
+    'success': 'exito',
+    'already_used': 'ya-usado',
+    'expired': 'expirado',
+    'invalid_event': 'evento-invalido',
+    'invalid_qr': 'qr-invalido',
+    'event_not_started': 'no-iniciado',
+    'event_finished': 'finalizado',
+    'ticket_refunded': 'reembolsado',
+    'access_denied': 'denegado'
+  };
+  return clases[resultado] || 'otro';
+};
+
+const getTextoResultado = (resultado) => {
+  const textos = {
+    'success': '✓ Exitoso',
+    'already_used': '🔁 Ya usado',
+    'expired': '⏰ Expirado',
+    'invalid_event': '❌ Evento inválido',
+    'invalid_qr': '⚠️ QR inválido',
+    'event_not_started': '📅 No iniciado',
+    'event_finished': '🏁 Finalizado',
+    'ticket_refunded': '💰 Reembolsado',
+    'access_denied': '🚫 Denegado'
+  };
+  return textos[resultado] || resultado;
+};
+
+const exportarValidacionesExcel = () => {
+  if (validacionesFiltradas.value.length === 0) {
+    mostrarAlerta('No hay validaciones para exportar', 'error');
+    return;
+  }
+
+  try {
+    // Preparar datos para Excel
+    const datosExcel = validacionesFiltradas.value.map(val => ({
+      'Fecha y Hora': formatearFecha(val.validatedAt),
+      'Ticket #': val.Ticket?.numero || 'N/A',
+      'Estado': val.isValid ? 'Válido' : 'Inválido',
+      'Resultado': getTextoResultado(val.validationResult),
+      'Tipo': val.validationType || '-',
+      'Validado Por': val.Validator?.nombre || 'Sistema',
+      'Usuario': val.Validator?.username || '-',
+      'Ubicación': val.location || '-',
+      'IP': val.ipAddress || '-',
+      'Intento #': val.attemptNumber || 1,
+      'Duración (ms)': val.validationDuration || '-',
+      'Error': val.errorDetails || '-'
+    }));
+
+    // Crear libro de Excel
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(datosExcel);
+
+    // Ajustar anchos de columna
+    const colWidths = [
+      { wch: 18 }, // Fecha y Hora
+      { wch: 15 }, // Ticket #
+      { wch: 10 }, // Estado
+      { wch: 15 }, // Resultado
+      { wch: 12 }, // Tipo
+      { wch: 20 }, // Validado Por
+      { wch: 15 }, // Usuario
+      { wch: 20 }, // Ubicación
+      { wch: 15 }, // IP
+      { wch: 10 }, // Intento #
+      { wch: 15 }, // Duración
+      { wch: 30 }  // Error
+    ];
+    ws['!cols'] = colWidths;
+
+    // Agregar hoja al libro
+    XLSX.utils.book_append_sheet(wb, ws, 'Validaciones QR');
+
+    // Generar nombre de archivo
+    const fecha = new Date().toISOString().split('T')[0];
+    const filtro = filtroValidacion.value;
+    const nombreArchivo = `validaciones-qr-${filtro}-${fecha}.xlsx`;
+
+    // Descargar archivo
+    XLSX.writeFile(wb, nombreArchivo);
+
+    mostrarAlerta(`✅ Excel exportado: ${validacionesFiltradas.value.length} validaciones`, 'success');
+  } catch (error) {
+    console.error('Error exportando a Excel:', error);
+    mostrarAlerta('Error al exportar a Excel', 'error');
+  }
+};
+
+// Cargar validaciones al montar el componente
+onMounted(() => {
+  cargarValidaciones();
+});
 </script>
 
 <style scoped>
@@ -647,5 +864,242 @@ const descargarPDF = async () => {
   .grid-qrs {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .controles-validaciones {
+    flex-direction: column;
+  }
+
+  .filtro-validacion,
+  .btn-recargar,
+  .btn-excel {
+    width: 100%;
+  }
+}
+
+/* === ESTILOS PARA SECCIÓN DE VALIDACIONES === */
+.seccion-validaciones {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.header-validaciones {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #EEE;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.header-validaciones h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.controles-validaciones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filtro-validacion {
+  padding: 10px 15px;
+  border: 2px solid #DDD;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.filtro-validacion:focus {
+  outline: none;
+  border-color: #6B9080;
+}
+
+.btn-recargar {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #17A2B8, #138496);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.btn-recargar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #138496, #117A8B);
+  transform: translateY(-2px);
+}
+
+.btn-recargar:disabled {
+  background: #CCC;
+  cursor: not-allowed;
+}
+
+.btn-excel {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #28A745, #218838);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.btn-excel:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1E7E34);
+  transform: translateY(-2px);
+}
+
+.btn-excel:disabled {
+  background: #CCC;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.loading-validaciones {
+  text-align: center;
+  padding: 40px;
+}
+
+.spinner-small {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #6B9080;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+.tabla-validaciones {
+  overflow-x: auto;
+}
+
+.tabla-validaciones table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabla-validaciones thead {
+  background: #F8F9FA;
+}
+
+.tabla-validaciones th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 700;
+  color: #333;
+  border-bottom: 2px solid #DDD;
+}
+
+.tabla-validaciones td {
+  padding: 12px;
+  border-bottom: 1px solid #EEE;
+  vertical-align: middle;
+}
+
+.tabla-validaciones tr:hover {
+  background: #F8F9FA;
+}
+
+.badge-estado {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.badge-estado.exitoso {
+  background: #D4EDDA;
+  color: #155724;
+}
+
+.badge-estado.fallido {
+  background: #F8D7DA;
+  color: #721C24;
+}
+
+.badge-resultado {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-resultado.exito {
+  background: #D1F2EB;
+  color: #0C5460;
+}
+
+.badge-resultado.ya-usado {
+  background: #FFF3CD;
+  color: #856404;
+}
+
+.badge-resultado.expirado,
+.badge-resultado.finalizado {
+  background: #E2E3E5;
+  color: #383D41;
+}
+
+.badge-resultado.evento-invalido,
+.badge-resultado.qr-invalido,
+.badge-resultado.denegado {
+  background: #F8D7DA;
+  color: #721C24;
+}
+
+.badge-resultado.no-iniciado {
+  background: #D1ECF1;
+  color: #0C5460;
+}
+
+.badge-resultado.reembolsado {
+  background: #D6D8DB;
+  color: #1B1E21;
+}
+
+.sin-validaciones {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.sin-validaciones p {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.sin-validaciones small {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.mas-validaciones {
+  text-align: center;
+  margin-top: 15px;
+  padding: 15px;
+  background: #F0F0F0;
+  border-radius: 8px;
+  color: #666;
+}
+
+.mas-validaciones strong {
+  color: #28A745;
 }
 </style>

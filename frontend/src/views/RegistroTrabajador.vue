@@ -16,7 +16,22 @@
       <div class="formulario-card">
         <h2 class="titulo-formulario">FORMULARIO DE REGISTRO<br />EQUIPO DE TRABAJO</h2>
 
-        <form @submit.prevent="enviarFormulario" class="form-trabajador">
+        <!-- Alerta cuando el formulario está deshabilitado -->
+        <div v-if="!formularioActivo && !verificandoEstado" class="alerta-formulario-bloqueado">
+          <div class="icono-bloqueado">🚫</div>
+          <div class="texto-bloqueado">
+            <h3>Formulario Temporalmente Deshabilitado</h3>
+            <p>El registro de trabajadores está temporalmente inhabilitado por el administrador. Por favor intenta más tarde.</p>
+          </div>
+        </div>
+
+        <!-- Alerta de carga -->
+        <div v-if="verificandoEstado" class="alerta-cargando">
+          <div class="spinner-carga"></div>
+          <p>Verificando disponibilidad del formulario...</p>
+        </div>
+
+        <form @submit.prevent="enviarFormulario" class="form-trabajador" :class="{ 'formulario-deshabilitado': !formularioActivo }">
           <div class="form-group">
             <label>Nombre(es): <span class="requerido">*</span></label>
             <input 
@@ -25,6 +40,7 @@
               placeholder="Tu nombre aquí"
               required
               class="form-control"
+              :disabled="!formularioActivo"
             />
           </div>
 
@@ -223,9 +239,9 @@
           <button 
             type="submit" 
             class="btn-enviar"
-            :disabled="enviando"
+            :disabled="enviando || !formularioActivo"
           >
-            {{ enviando ? 'ENVIANDO...' : 'ENVIAR' }}
+            {{ enviando ? 'ENVIANDO...' : (!formularioActivo ? '🚫 FORMULARIO DESHABILITADO' : 'ENVIAR') }}
           </button>
 
           <!-- Mensaje de resultado -->
@@ -289,10 +305,12 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { trabajadorService } from '../services/api'
+import { trabajadorService, configuracionService } from '../services/api'
 import { generarCredencialPDF } from '../utils/credencialGenerator'
 import ModalDescargaCredencial from '../components/ModalDescargaCredencial.vue'
 
+const formularioActivo = ref(true) // Estado del formulario (si está habilitado o no)
+const verificandoEstado = ref(true) // Mientras carga el estado inicial
 const busquedaZona = ref('')
 const mostrarListaZonas = ref(false)
 
@@ -417,6 +435,33 @@ const estadoDescarga = ref('generando') // generando, descargando, completado, e
 const nombreArchivoDescarga = ref('')
 const errorDescarga = ref('')
 
+// Verificar estado del formulario al cargar
+onMounted(async () => {
+  await verificarEstadoFormulario()
+})
+
+const verificarEstadoFormulario = async () => {
+  verificandoEstado.value = true
+  try {
+    const response = await configuracionService.getFormulariosStatus()
+    if (response.success) {
+      formularioActivo.value = response.data.trabajadores
+      console.log('📋 Estado formulario trabajadores:', formularioActivo.value ? 'ACTIVO ✅' : 'INACTIVO ❌')
+      
+      if (!formularioActivo.value) {
+        mensaje.value = '⚠️ El formulario de registro de trabajadores está temporalmente deshabilitado.'
+        mensajeTipo.value = 'warning'
+      }
+    }
+  } catch (error) {
+    console.error('Error verificando estado del formulario:', error)
+    // En caso de error, permitir el registro (fail-safe)
+    formularioActivo.value = true
+  } finally {
+    verificandoEstado.value = false
+  }
+}
+
 // Errores de validación
 const errores = ref({
   ci: '',
@@ -494,6 +539,14 @@ const validarFormulario = () => {
 }
 
 const enviarFormulario = async () => {
+  // ⚠️ VERIFICAR SI EL FORMULARIO ESTÁ ACTIVO
+  if (!formularioActivo.value) {
+    mensaje.value = '⚠️ El formulario de registro de trabajadores está temporalmente deshabilitado. Por favor intenta más tarde.'
+    mensajeTipo.value = 'error'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+  
   // Validar formulario antes de enviar
   if (!validarFormulario()) {
     mensaje.value = 'Por favor corrige los errores en el formulario'
@@ -607,6 +660,16 @@ const confirmarYDescargar = async () => {
     ocupacion: '',
     nombreReferencia: '',
     parentesco: '',
+    celularReferencia: ''
+  }
+  
+  // Limpiar búsqueda de zona
+  busquedaZona.value = ''
+  
+  // Limpiar errores
+  errores.value = {
+    ci: '',
+    telefono: '',
     celularReferencia: ''
   }
 }
@@ -857,6 +920,92 @@ const cerrarModalDescarga = () => {
   color: #856404;
 }
 
+/* Alerta de formulario bloqueado */
+.alerta-formulario-bloqueado {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 15px;
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+  animation: pulseAlert 2s ease-in-out infinite;
+}
+
+@keyframes pulseAlert {
+  0%, 100% {
+    box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+  }
+  50% {
+    box-shadow: 0 8px 35px rgba(255, 107, 107, 0.5);
+  }
+}
+
+.icono-bloqueado {
+  font-size: 4rem;
+  line-height: 1;
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+.texto-bloqueado h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.texto-bloqueado p {
+  margin: 0;
+  font-size: 1.05rem;
+  opacity: 0.95;
+  line-height: 1.5;
+}
+
+/* Alerta de carga */
+.alerta-cargando {
+  text-align: center;
+  padding: 30px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.spinner-carga {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 15px;
+  border: 5px solid #e9ecef;
+  border-top: 5px solid #6B9080;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.alerta-cargando p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Formulario deshabilitado */
+.formulario-deshabilitado {
+  opacity: 0.6;
+  pointer-events: none;
+  filter: grayscale(50%);
+}
+
 .btn-enviar {
   background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
   color: white;
@@ -879,6 +1028,7 @@ const cerrarModalDescarga = () => {
 .btn-enviar:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
 }
 
 .mensaje {

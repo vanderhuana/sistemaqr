@@ -68,7 +68,17 @@ app.use(cors({
       'https://192.168.15.245:5174',
       'https://192.168.15.245:5175',
       'https://192.168.15.245:3443',
-      'https://192.168.15.245:8443'
+      'https://192.168.15.245:8443',
+      // Red local - IP actual
+      'http://192.168.1.5:8080',
+      'http://192.168.1.5:5173',
+      'http://192.168.1.5:5174',
+      'http://192.168.1.5:5175',
+      'https://192.168.1.5:5173',
+      'https://192.168.1.5:5174',
+      'https://192.168.1.5:5175',
+      'https://192.168.1.5:3443',
+      'https://192.168.1.5:8443'
     ];
 
     // Si se definió FRONTEND_URL en env, añádelo (normalizado)
@@ -96,6 +106,9 @@ app.use(cors({
 // Servir archivos estáticos del frontend QR
 app.use('/qr', express.static(path.join(__dirname, '../frontend')));
 
+// Servir imágenes de premios FEIPOBOL
+app.use('/api/assets', express.static(path.join(__dirname, 'assets')));
+
 // Middleware para parsear JSON
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -110,8 +123,18 @@ const trabajadorRoutes = require('./src/routes/trabajadores');
 const participanteRoutes = require('./src/routes/participantes');
 const empresaRoutes = require('./src/routes/empresas');
 const backupRoutes = require('./src/routes/backup');
+const reportRoutes = require('./src/routes/reports');
+const publicRoutes = require('./src/routes/public');
+const adminRegistroFeipobolRoutes = require('./src/routes/adminRegistroFeipobol');
+const adminPremiosRoutes = require('./src/routes/adminPremios');
+const configuracionRoutes = require('./src/routes/configuracion');
 
 // Configurar rutas
+// Rutas públicas (sin autenticación)
+app.use('/api/public', publicRoutes);
+app.use('/api/configuracion', configuracionRoutes);
+
+// Rutas protegidas
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/tickets', ticketRoutes);
@@ -123,6 +146,9 @@ app.use('/api/empresas', empresaRoutes);
 app.use('/api/validation', require('./src/routes/validation'));
 app.use('/api/access', require('./src/routes/access'));
 app.use('/api/backup', backupRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/admin/registro-feipobol', adminRegistroFeipobolRoutes);
+app.use('/api/admin/premios', adminPremiosRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -206,6 +232,10 @@ const initializeDatabase = async () => {
     
     // Sincronizar modelos
     await syncModels(false); // false = no forzar recreación de tablas
+    
+    // Inicializar configuraciones por defecto
+    const configuracionController = require('./src/controllers/configuracionController');
+    await configuracionController.initDefaults();
     
     // Crear datos de prueba solo en desarrollo
     if (process.env.NODE_ENV !== 'production') {

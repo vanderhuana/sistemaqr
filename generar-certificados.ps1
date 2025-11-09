@@ -5,8 +5,8 @@ Write-Host "=== Generando Certificados SSL para Red Local ===" -ForegroundColor 
 Write-Host ""
 
 $certPath = ".\backend\ssl"
-$ipAddress = "192.168.1.3"
-$dnsNames = @("localhost", "192.168.1.3", $env:COMPUTERNAME)
+$ipAddress = "192.168.1.4"
+$dnsNames = @("localhost", "192.168.1.4", $env:COMPUTERNAME)
 
 # Crear directorio para certificados
 if (-not (Test-Path $certPath)) {

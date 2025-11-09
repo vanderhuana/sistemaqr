@@ -53,10 +53,18 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expirado o inválido
+      // Token expirado o inválido - destruir sesión completamente
+      console.warn('⚠️ Token expirado o inválido - cerrando sesión')
+      
+      // Limpiar localStorage (todas las variantes)
       localStorage.removeItem('token')
+      localStorage.removeItem('sisqr_token')
       localStorage.removeItem('user')
-      // Redireccionar al login si es necesario
+      localStorage.removeItem('sisqr_user')
+      localStorage.removeItem('refreshToken')
+      
+      // Redirigir al login
+      window.location.href = '/login'
     }
     return Promise.reject(error)
   }
@@ -106,6 +114,16 @@ export const userService = {
   async updateUser(id, userData) {
     try {
       const response = await apiClient.put(`/api/users/${id}`, userData)
+      
+      // Si el usuario editado es el usuario actual, actualizar localStorage
+      const currentUser = JSON.parse(localStorage.getItem('sisqr_user') || localStorage.getItem('user') || '{}')
+      if (currentUser.id === id) {
+        console.log('ℹ️ Usuario actual editado - actualizando sesión')
+        const updatedUser = { ...currentUser, ...userData }
+        localStorage.setItem('sisqr_user', JSON.stringify(updatedUser))
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
+      
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error actualizando usuario:', error)
@@ -116,6 +134,25 @@ export const userService = {
   async deleteUser(id) {
     try {
       await apiClient.delete(`/api/users/${id}`)
+      
+      // Si el usuario eliminado es el usuario actual, cerrar sesión
+      const currentUser = JSON.parse(localStorage.getItem('sisqr_user') || localStorage.getItem('user') || '{}')
+      if (currentUser.id === id) {
+        console.warn('⚠️ Usuario actual eliminado - cerrando sesión')
+        
+        // Limpiar localStorage
+        localStorage.removeItem('token')
+        localStorage.removeItem('sisqr_token')
+        localStorage.removeItem('user')
+        localStorage.removeItem('sisqr_user')
+        localStorage.removeItem('refreshToken')
+        
+        // Redirigir al login después de un breve delay
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 500)
+      }
+      
       return { success: true }
     } catch (error) {
       console.error('Error eliminando usuario:', error)
@@ -292,7 +329,7 @@ export const authService = {
       if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
         return {
           success: false,
-          message: '❌ No se puede conectar al servidor. ¿Está corriendo el backend en puerto 3000?'
+          message: '❌ No se puede conectar al servidor. Verifica que el backend esté corriendo.'
         }
       }
       
@@ -650,6 +687,61 @@ export const participanteService = {
   }
 }
 
+// Servicio de FEIPOBOL 2025
+export const feipobolService = {
+  async createRegistroFeipobol(data) {
+    try {
+      const response = await apiClient.post('/api/public/registro', data)
+      // El backend ya devuelve { success, message, data }, no envolver de nuevo
+      return response.data
+    } catch (error) {
+      console.error('Error creando registro FEIPOBOL:', error)
+      return { success: false, error: error.response?.data?.error || 'Error al registrar para FEIPOBOL' }
+    }
+  },
+
+  async getAllRegistrosFeipobol() {
+    try {
+      const response = await apiClient.get('/api/registro-feipobol')
+      console.log('📊 Respuesta registros FEIPOBOL:', response.data)
+      return { success: true, data: response.data.data || response.data }
+    } catch (error) {
+      console.error('Error obteniendo registros FEIPOBOL:', error)
+      return { success: false, error: error.response?.data?.error || 'Error al obtener registros FEIPOBOL' }
+    }
+  },
+
+  async getRegistroFeipobolById(id) {
+    try {
+      const response = await apiClient.get(`/api/registro-feipobol/${id}`)
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error obteniendo registro FEIPOBOL:', error)
+      return { success: false, error: error.response?.data?.error || 'Error al obtener registro FEIPOBOL' }
+    }
+  },
+
+  async updateRegistroFeipobol(id, data) {
+    try {
+      const response = await apiClient.put(`/api/registro-feipobol/${id}`, data)
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error actualizando registro FEIPOBOL:', error)
+      return { success: false, error: error.response?.data?.error || 'Error al actualizar registro FEIPOBOL' }
+    }
+  },
+
+  async deleteRegistroFeipobol(id) {
+    try {
+      await apiClient.delete(`/api/registro-feipobol/${id}`)
+      return { success: true }
+    } catch (error) {
+      console.error('Error eliminando registro FEIPOBOL:', error)
+      return { success: false, error: error.response?.data?.error || 'Error al eliminar registro FEIPOBOL' }
+    }
+  }
+}
+
 // Servicio de control de acceso (trabajadores/participantes)
 export const accessService = {
   async validateAccess(token, tipo) {
@@ -821,6 +913,220 @@ export const backupService = {
     } catch (error) {
       console.error('Error eliminando backup:', error)
       throw error
+    }
+  },
+
+  async downloadBackup(filename) {
+    try {
+      const response = await apiClient.get(`/api/backup/download/${filename}`, {
+        responseType: 'blob'
+      })
+      return { success: true, data: response.data, filename }
+    } catch (error) {
+      console.error('Error descargando backup:', error)
+      throw error
+    }
+  },
+
+  async cleanDatabase() {
+    try {
+      const response = await apiClient.post('/api/backup/clean')
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error limpiando base de datos:', error)
+      throw error
+    }
+  }
+}
+
+// Servicio de reportes
+export const reportService = {
+  async getReportData(filters = {}) {
+    try {
+      const params = new URLSearchParams()
+      Object.keys(filters).forEach(key => {
+        if (filters[key]) {
+          params.append(key, filters[key])
+        }
+      })
+      
+      const response = await apiClient.get(`/api/reports/data?${params.toString()}`)
+      return { success: true, data: response.data.data }
+    } catch (error) {
+      console.error('Error obteniendo datos de reporte:', error)
+      return { success: false, message: error.response?.data?.message || 'Error de conexión' }
+    }
+  },
+
+  async getFilterOptions() {
+    try {
+      const response = await apiClient.get('/api/reports/filter-options')
+      return { success: true, data: response.data.data }
+    } catch (error) {
+      console.error('Error obteniendo opciones de filtros:', error)
+      return { success: false, message: error.response?.data?.message || 'Error de conexión' }
+    }
+  },
+
+  async validateCredential(codigoQR) {
+    try {
+      const response = await apiClient.get(`/api/reports/validate/${encodeURIComponent(codigoQR)}`)
+      return { success: true, data: response.data.data }
+    } catch (error) {
+      console.error('Error validando credencial:', error)
+      return { success: false, message: error.response?.data?.message || 'Error de conexión' }
+    }
+  },
+
+  generatePDFUrl(filters = {}) {
+    const params = new URLSearchParams()
+    Object.keys(filters).forEach(key => {
+      if (filters[key] && key !== 'page' && key !== 'limit') {
+        params.append(key, filters[key])
+      }
+    })
+    params.append('titulo', 'Reporte de Entradas - ' + new Date().toLocaleDateString())
+    
+    return `${apiClient.defaults.baseURL}/api/reports/pdf?${params.toString()}`
+  },
+
+  // Reportes de accesos (Generador QR)
+  async getAccesosData(filters = {}) {
+    try {
+      const params = new URLSearchParams()
+      Object.keys(filters).forEach(key => {
+        if (filters[key]) {
+          params.append(key, filters[key])
+        }
+      })
+      
+      const response = await apiClient.get(`/api/reports/accesos?${params.toString()}`)
+      return { success: true, data: response.data.data }
+    } catch (error) {
+      console.error('Error obteniendo datos de accesos:', error)
+      return { success: false, message: error.response?.data?.message || 'Error de conexión' }
+    }
+  },
+
+  async getAccesosFilterOptions() {
+    try {
+      const response = await apiClient.get('/api/reports/accesos-filter-options')
+      return { success: true, data: response.data.data }
+    } catch (error) {
+      console.error('Error obteniendo opciones de filtros de accesos:', error)
+      return { success: false, message: error.response?.data?.message || 'Error de conexión' }
+    }
+  }
+}
+
+// Servicio para gestión de premios FEIPOBOL
+export const premiosService = {
+  async getAllPremios() {
+    try {
+      const response = await apiClient.get('/api/admin/premios')
+      // El backend devuelve { success: true, premios: [...] }
+      return { success: true, data: response.data.premios || response.data }
+    } catch (error) {
+      console.error('Error obteniendo premios:', error)
+      return { success: false, error: error.response?.data?.message || 'Error al obtener premios' }
+    }
+  },
+
+  async getStats() {
+    try {
+      const response = await apiClient.get('/api/admin/premios/stats')
+      // El backend devuelve { success: true, stats: {...} }
+      return { success: true, data: response.data.stats || response.data }
+    } catch (error) {
+      console.error('Error obteniendo estadísticas de premios:', error)
+      return { success: false, error: error.response?.data?.message || 'Error al obtener estadísticas' }
+    }
+  },
+
+  async createPremio(data) {
+    try {
+      const response = await apiClient.post('/api/admin/premios', data)
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error creando premio:', error)
+      return { success: false, error: error.response?.data?.message || 'Error al crear premio' }
+    }
+  },
+
+  async updatePremio(id, data) {
+    try {
+      const response = await apiClient.put(`/api/admin/premios/${id}`, data)
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error actualizando premio:', error)
+      return { success: false, error: error.response?.data?.message || 'Error al actualizar premio' }
+    }
+  },
+
+  async deletePremio(id) {
+    try {
+      const response = await apiClient.delete(`/api/admin/premios/${id}`)
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error eliminando premio:', error)
+      return { success: false, error: error.response?.data?.message || 'Error al eliminar premio' }
+    }
+  },
+
+  async getGanadores() {
+    try {
+      const response = await apiClient.get('/api/admin/premios/ganadores')
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error obteniendo ganadores:', error)
+      return { success: false, error: error.response?.data?.message || 'Error al obtener ganadores' }
+    }
+  },
+
+  async marcarEntregado(ganadorId, data) {
+    try {
+      const response = await apiClient.put(`/api/admin/premios/ganadores/${ganadorId}/entrega`, data)
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error marcando entrega:', error)
+      return { success: false, error: error.response?.data?.message || 'Error al marcar entrega' }
+    }
+  }
+}
+
+// Servicio de configuración (habilitar/deshabilitar formularios)
+export const configuracionService = {
+  // Obtener estado de los formularios (público)
+  async getFormulariosStatus() {
+    try {
+      const response = await apiClient.get('/api/configuracion/formularios-status')
+      return { success: true, data: response.data.data }
+    } catch (error) {
+      console.error('Error obteniendo estado formularios:', error)
+      // Por defecto, permitir acceso si hay error
+      return { success: true, data: { participantes: true, trabajadores: true, feipobol: true } }
+    }
+  },
+
+  // Obtener todas las configuraciones (admin)
+  async getAll() {
+    try {
+      const response = await apiClient.get('/api/configuracion')
+      return { success: true, data: response.data.data }
+    } catch (error) {
+      console.error('Error obteniendo configuraciones:', error)
+      return { success: false, error: error.response?.data?.error || 'Error al obtener configuraciones' }
+    }
+  },
+
+  // Toggle formulario (admin)
+  async toggleFormulario(tipo, activo) {
+    try {
+      const response = await apiClient.post(`/api/configuracion/toggle/${tipo}`, { activo })
+      return { success: true, data: response.data.data }
+    } catch (error) {
+      console.error(`Error toggling formulario ${tipo}:`, error)
+      return { success: false, error: error.response?.data?.error || 'Error al cambiar estado' }
     }
   }
 }

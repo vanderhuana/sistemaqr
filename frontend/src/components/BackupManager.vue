@@ -40,6 +40,12 @@
           Importar un backup reemplazará todos los datos actuales de la base de datos. 
           Esta acción no se puede deshacer.
         </div>
+
+        <div class="info-box">
+          <i class="fas fa-lightbulb"></i>
+          <strong>💡 Recomendación:</strong> 
+          Limpia la base de datos antes de importar un backup para evitar conflictos de datos.
+        </div>
         
         <div class="file-upload">
           <input 
@@ -47,7 +53,7 @@
             ref="fileInput"
             @change="handleFileSelect"
             accept=".sql"
-            :disabled="importando"
+            :disabled="importando || limpiando"
             id="backup-file"
           >
           <label for="backup-file" class="file-label">
@@ -56,14 +62,25 @@
           </label>
         </div>
 
-        <button 
-          @click="importBackup" 
-          class="btn btn-danger"
-          :disabled="!selectedFile || importando"
-        >
-          <i class="fas fa-upload"></i>
-          {{ importando ? 'Restaurando...' : 'Restaurar Backup' }}
-        </button>
+        <div class="button-group">
+          <button 
+            @click="limpiarBaseDatos" 
+            class="btn btn-warning"
+            :disabled="limpiando || importando"
+          >
+            <i class="fas fa-broom"></i>
+            {{ limpiando ? 'Limpiando...' : 'Limpiar Base de Datos' }}
+          </button>
+
+          <button 
+            @click="importBackup" 
+            class="btn btn-danger"
+            :disabled="!selectedFile || importando || limpiando"
+          >
+            <i class="fas fa-upload"></i>
+            {{ importando ? 'Restaurando...' : 'Restaurar Backup' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -105,13 +122,22 @@
                 <td>{{ backup.sizeMB }} MB</td>
                 <td>{{ formatDate(backup.createdAt) }}</td>
                 <td>
-                  <button 
-                    @click="deleteBackup(backup.filename)" 
-                    class="btn btn-small btn-danger"
-                    title="Eliminar backup"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  <div class="action-buttons">
+                    <button 
+                      @click="downloadBackup(backup.filename)" 
+                      class="btn btn-small btn-primary"
+                      title="Descargar backup"
+                    >
+                      <i class="fas fa-download"></i>
+                    </button>
+                    <button 
+                      @click="deleteBackup(backup.filename)" 
+                      class="btn btn-small btn-danger"
+                      title="Eliminar backup"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -138,6 +164,7 @@ export default {
   setup() {
     const exportando = ref(false);
     const importando = ref(false);
+    const limpiando = ref(false);
     const cargandoLista = ref(false);
     const selectedFile = ref(null);
     const fileInput = ref(null);
@@ -214,10 +241,10 @@ export default {
       const confirmacion = confirm(
         '⚠️ ADVERTENCIA: Esta acción reemplazará TODOS los datos actuales de la base de datos.\n\n' +
         '¿Estás seguro de que deseas continuar?\n\n' +
-        'Escribe "CONFIRMAR" para proceder:'
+        'Haz clic en "Aceptar" para proceder o "Cancelar" para abortar.'
       );
 
-      if (confirmacion !== 'CONFIRMAR') {
+      if (!confirmacion) {
         mensaje.value = {
           tipo: 'error',
           texto: 'Importación cancelada'
@@ -298,6 +325,90 @@ export default {
       }
     };
 
+    // Descargar backup del servidor
+    const downloadBackup = async (filename) => {
+      try {
+        mensaje.value = null;
+        
+        const response = await backupService.downloadBackup(filename);
+        
+        // Crear blob y descargar
+        const blob = new Blob([response.data], { type: 'application/sql' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        mensaje.value = {
+          tipo: 'success',
+          texto: `Backup "${filename}" descargado exitosamente`
+        };
+
+      } catch (error) {
+        console.error('Error descargando backup:', error);
+        mensaje.value = {
+          tipo: 'error',
+          texto: 'Error al descargar el backup'
+        };
+      }
+    };
+
+    // Limpiar base de datos
+    const limpiarBaseDatos = async () => {
+      const confirmacion = confirm(
+        '⚠️ ADVERTENCIA CRÍTICA\n\n' +
+        'Esta acción eliminará TODOS los datos de la base de datos:\n' +
+        '• Tickets y validaciones\n' +
+        '• Participantes y trabajadores\n' +
+        '• Eventos y empresas\n\n' +
+        '¿Estás ABSOLUTAMENTE seguro?\n\n' +
+        'Haz clic en "Aceptar" solo si deseas proceder.'
+      );
+
+      if (!confirmacion) {
+        return;
+      }
+
+      try {
+        limpiando.value = true;
+        mensaje.value = null;
+
+        const response = await backupService.cleanDatabase();
+
+        let detalles = '';
+        if (response.data.tablasLimpiadas && response.data.tablasLimpiadas.length > 0) {
+          detalles = '\n\nTablas limpiadas:\n';
+          response.data.tablasLimpiadas.forEach(t => {
+            detalles += `• ${t.tabla}: ${t.registros} registros eliminados\n`;
+          });
+        }
+
+        mensaje.value = {
+          tipo: 'success',
+          texto: `Base de datos limpiada exitosamente. Total: ${response.data.totalRegistrosEliminados} registros eliminados.${detalles}`
+        };
+
+        alert(
+          '✅ Base de datos limpiada\n\n' +
+          `Total de registros eliminados: ${response.data.totalRegistrosEliminados}\n\n` +
+          'Ahora puedes importar tu backup de forma segura.'
+        );
+
+      } catch (error) {
+        console.error('Error limpiando base de datos:', error);
+        mensaje.value = {
+          tipo: 'error',
+          texto: error.response?.data?.message || 'Error al limpiar la base de datos'
+        };
+      } finally {
+        limpiando.value = false;
+      }
+    };
+
     // Formatear fecha
     const formatDate = (dateString) => {
       const date = new Date(dateString);
@@ -318,6 +429,7 @@ export default {
     return {
       exportando,
       importando,
+      limpiando,
       cargandoLista,
       selectedFile,
       fileInput,
@@ -326,7 +438,9 @@ export default {
       exportBackup,
       handleFileSelect,
       importBackup,
+      limpiarBaseDatos,
       loadBackupList,
+      downloadBackup,
       deleteBackup,
       formatDate
     };
@@ -435,6 +549,17 @@ export default {
   box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
 }
 
+.btn-warning {
+  background: #f39c12;
+  color: white;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: #e67e22;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+}
+
 .btn-small {
   padding: 8px 16px;
   font-size: 14px;
@@ -457,6 +582,31 @@ export default {
 .warning-box i {
   margin-right: 10px;
   color: #ffc107;
+}
+
+.info-box {
+  background: #d1ecf1;
+  border: 2px solid #17a2b8;
+  border-radius: 5px;
+  padding: 15px;
+  margin-bottom: 20px;
+  color: #0c5460;
+}
+
+.info-box i {
+  margin-right: 10px;
+  color: #17a2b8;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.button-group .btn {
+  flex: 1;
+  min-width: 200px;
 }
 
 .file-upload {
@@ -522,6 +672,16 @@ export default {
 .backup-list td i {
   margin-right: 8px;
   color: #3498db;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.action-buttons .btn-small {
+  min-width: 40px;
 }
 
 .mensaje {

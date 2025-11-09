@@ -125,23 +125,29 @@
 
     <!-- VISTA DE DASHBOARD (SEGÚN ROL) -->
     <div v-else class="vista-dashboard">
-      <!-- Dashboard Admin -->
-      <DashboardAdmin 
-        v-if="usuarioActual.rol === 'admin'"
-        :usuario="usuarioActual"
-        @cerrar-sesion="cerrarSesion"
-      />
-      <DashboardVendedor 
-        v-else-if="usuarioActual.rol === 'vendedor'"
-        :usuario="usuarioActual"
-        @cerrar-sesion="cerrarSesion"
-      />
-      <!-- Dashboard Control -->
-      <DashboardControl 
-        v-else-if="usuarioActual.rol === 'control'"
-        :usuario="usuarioActual"
-        @cerrar-sesion="cerrarSesion"
-      />
+      <!-- Si está en una ruta /admin/*, mostrar solo el router-view -->
+      <router-view v-if="esRutaAdmin" />
+      
+      <!-- Si no, mostrar el dashboard según el rol -->
+      <template v-else>
+        <!-- Dashboard Admin -->
+        <DashboardAdmin 
+          v-if="usuarioActual.rol === 'admin'"
+          :usuario="usuarioActual"
+          @cerrar-sesion="cerrarSesion"
+        />
+        <DashboardVendedor 
+          v-else-if="usuarioActual.rol === 'vendedor'"
+          :usuario="usuarioActual"
+          @cerrar-sesion="cerrarSesion"
+        />
+        <!-- Dashboard Control -->
+        <DashboardControl 
+          v-else-if="usuarioActual.rol === 'control'"
+          :usuario="usuarioActual"
+          @cerrar-sesion="cerrarSesion"
+        />
+      </template>
     </div> <!-- Fin vista-dashboard -->
 
     
@@ -171,8 +177,13 @@ const usuarioActual = ref(null)
 
 // Verificar si la ruta actual es pública
 const esRutaPublica = computed(() => {
-  const rutasPublicas = ['/registro-trabajador', '/registro-participante']
+  const rutasPublicas = ['/registro-trabajador', '/registro-participante', '/registro-feipobol']
   return rutasPublicas.includes(route.path)
+})
+
+// Verificar si la ruta actual es una ruta admin especial
+const esRutaAdmin = computed(() => {
+  return route.path.startsWith('/admin/')
 })
 
 // Verificar si ya hay un usuario logueado al cargar la aplicación

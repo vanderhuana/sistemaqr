@@ -2,9 +2,14 @@
   <div class="trabajadores-lista">
     <div class="header-lista">
       <h2>📋 Lista de Trabajadores</h2>
-      <button @click="copiarLink" class="btn-copiar-link">
-        📋 Copiar Link de Registro
-      </button>
+      <div class="header-acciones">
+        <button @click="exportarExcel" class="btn-exportar-excel">
+          📊 EXPORTAR EXCEL
+        </button>
+        <button @click="copiarLink" class="btn-copiar-link">
+          📋 Copiar Link de Registro
+        </button>
+      </div>
     </div>
 
     <!-- Barra de búsqueda y filtros -->
@@ -39,6 +44,21 @@
 
     <!-- Tabla de trabajadores -->
     <div v-else-if="trabajadoresFiltrados.length > 0" class="tabla-container">
+      <!-- Info de paginación -->
+      <div class="info-paginacion">
+        <p>
+          Mostrando {{ (paginaActual - 1) * itemsPorPagina + 1 }} - 
+          {{ Math.min(paginaActual * itemsPorPagina, trabajadoresFiltrados.length) }} 
+          de {{ trabajadoresFiltrados.length }} trabajadores
+        </p>
+        <select v-model.number="itemsPorPagina" class="select-items-pagina" @change="paginaActual = 1">
+          <option :value="10">10 por página</option>
+          <option :value="20">20 por página</option>
+          <option :value="50">50 por página</option>
+          <option :value="100">100 por página</option>
+        </select>
+      </div>
+
       <table class="tabla-trabajadores">
         <thead>
           <tr>
@@ -54,7 +74,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="trabajador in trabajadoresFiltrados" :key="trabajador.id">
+          <tr v-for="trabajador in trabajadoresPaginados" :key="trabajador.id">
             <td class="nombre-col">
               {{ trabajador.nombre }} {{ trabajador.apellido }}
             </td>
@@ -90,6 +110,9 @@
               <button @click="verDetalle(trabajador)" class="btn-accion ver" title="Ver detalle">
                 👁️
               </button>
+              <button @click="editarTrabajador(trabajador)" class="btn-accion editar" title="Editar">
+                ✏️
+              </button>
               <button @click="generarCredencial(trabajador)" class="btn-accion credencial" title="Generar Credencial">
                 🎫
               </button>
@@ -100,6 +123,37 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Controles de paginación -->
+      <div v-if="totalPaginas > 1" class="paginacion">
+        <button 
+          @click="paginaAnterior" 
+          :disabled="paginaActual === 1"
+          class="btn-pagina"
+        >
+          ← Anterior
+        </button>
+
+        <div class="numeros-pagina">
+          <button 
+            v-for="pagina in totalPaginas" 
+            :key="pagina"
+            @click="cambiarPagina(pagina)"
+            :class="['btn-numero-pagina', { activo: pagina === paginaActual }]"
+            v-show="mostrarNumeroPagina(pagina)"
+          >
+            {{ pagina }}
+          </button>
+        </div>
+
+        <button 
+          @click="paginaSiguiente" 
+          :disabled="paginaActual === totalPaginas"
+          class="btn-pagina"
+        >
+          Siguiente →
+        </button>
+      </div>
     </div>
 
     <!-- Sin resultados -->
@@ -174,13 +228,120 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal de Edición -->
+    <div v-if="trabajadorEditando" class="modal-overlay" @click="cerrarEdicion">
+      <div class="modal-contenido modal-edicion" @click.stop>
+        <button @click="cerrarEdicion" class="btn-cerrar-modal">✕</button>
+        <h3>✏️ Editar Trabajador</h3>
+        
+        <div class="form-edicion-grid">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input 
+              v-model="trabajadorEditando.nombre" 
+              type="text" 
+              placeholder="Nombre"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Apellido *</label>
+            <input 
+              v-model="trabajadorEditando.apellido" 
+              type="text" 
+              placeholder="Apellido"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>CI *</label>
+            <input 
+              v-model="trabajadorEditando.ci" 
+              type="text" 
+              placeholder="Cédula de Identidad"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Teléfono *</label>
+            <input 
+              v-model="trabajadorEditando.telefono" 
+              type="text" 
+              placeholder="Número de teléfono"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Correo</label>
+            <input 
+              v-model="trabajadorEditando.correo" 
+              type="email" 
+              placeholder="correo@ejemplo.com"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Cargo</label>
+            <input 
+              v-model="trabajadorEditando.cargo" 
+              type="text" 
+              placeholder="Cargo o puesto"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Departamento</label>
+            <input 
+              v-model="trabajadorEditando.departamento" 
+              type="text" 
+              placeholder="Departamento o área"
+              :disabled="guardandoEdicion"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label>Estado</label>
+            <select v-model="trabajadorEditando.estado" :disabled="guardandoEdicion">
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+              <option value="suspendido">Suspendido</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="modal-acciones">
+          <button 
+            @click="cerrarEdicion" 
+            class="btn-cancelar"
+            :disabled="guardandoEdicion"
+          >
+            Cancelar
+          </button>
+          <button 
+            @click="guardarEdicion" 
+            class="btn-guardar"
+            :disabled="guardandoEdicion"
+          >
+            {{ guardandoEdicion ? '⏳ Guardando...' : '💾 Guardar Cambios' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { trabajadorService } from '../services/api'
 import { generarCredencialPDF } from '../utils/credencialGenerator'
+import * as XLSX from 'xlsx'
 
 const trabajadores = ref([])
 const busqueda = ref('')
@@ -189,6 +350,15 @@ const cargando = ref(false)
 const mensaje = ref('')
 const mensajeTipo = ref('')
 const trabajadorSeleccionado = ref(null)
+
+// Variables para edición de trabajador
+const trabajadorEditando = ref(null)
+const guardandoEdicion = ref(false)
+
+// Variables de paginación
+const paginaActual = ref(1)
+const itemsPorPagina = ref(20)
+const totalPaginas = computed(() => Math.ceil(trabajadoresFiltrados.value.length / itemsPorPagina.value))
 
 const trabajadoresFiltrados = computed(() => {
   let resultado = trabajadores.value
@@ -210,6 +380,37 @@ const trabajadoresFiltrados = computed(() => {
   
   return resultado
 })
+
+// Trabajadores paginados
+const trabajadoresPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina.value
+  const fin = inicio + itemsPorPagina.value
+  return trabajadoresFiltrados.value.slice(inicio, fin)
+})
+
+// Funciones de paginación
+const cambiarPagina = (pagina) => {
+  if (pagina >= 1 && pagina <= totalPaginas.value) {
+    paginaActual.value = pagina
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+const paginaAnterior = () => {
+  cambiarPagina(paginaActual.value - 1)
+}
+
+const paginaSiguiente = () => {
+  cambiarPagina(paginaActual.value + 1)
+}
+
+// Mostrar solo páginas cercanas a la actual
+const mostrarNumeroPagina = (pagina) => {
+  if (totalPaginas.value <= 7) return true
+  if (pagina === 1 || pagina === totalPaginas.value) return true
+  if (Math.abs(pagina - paginaActual.value) <= 2) return true
+  return false
+}
 
 const cargarTrabajadores = async () => {
   cargando.value = true
@@ -311,6 +512,126 @@ const cerrarModal = () => {
   trabajadorSeleccionado.value = null
 }
 
+// Exportar a Excel
+const exportarExcel = () => {
+  try {
+    // Preparar datos para exportar (usar datos filtrados actuales)
+    const datos = trabajadoresFiltrados.value.map(t => ({
+      Nombre: t.nombre,
+      Apellido: t.apellido,
+      CI: t.ci || '',
+      Teléfono: t.telefono,
+      Correo: t.correo || '',
+      Cargo: t.cargo || '',
+      Departamento: t.departamento || '',
+      Estado: t.estado,
+      Token: t.token,
+      'Fecha Registro': new Date(t.createdAt).toLocaleDateString()
+    }))
+
+    // Crear hoja de cálculo
+    const ws = XLSX.utils.json_to_sheet(datos)
+    
+    // Ajustar ancho de columnas
+    const colWidths = [
+      { wch: 15 }, // Nombre
+      { wch: 15 }, // Apellido
+      { wch: 12 }, // CI
+      { wch: 12 }, // Teléfono
+      { wch: 25 }, // Correo
+      { wch: 20 }, // Cargo
+      { wch: 20 }, // Departamento
+      { wch: 12 }, // Estado
+      { wch: 40 }, // Token
+      { wch: 15 }  // Fecha Registro
+    ]
+    ws['!cols'] = colWidths
+
+    // Crear libro
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Trabajadores')
+
+    // Generar nombre de archivo con fecha
+    const fecha = new Date().toISOString().split('T')[0]
+    const nombreArchivo = `Trabajadores_FEIPOBOL_${fecha}.xlsx`
+
+    // Descargar archivo
+    XLSX.writeFile(wb, nombreArchivo)
+
+    mensaje.value = `✅ Excel exportado exitosamente: ${datos.length} trabajadores`
+    mensajeTipo.value = 'success'
+    setTimeout(() => {
+      mensaje.value = ''
+    }, 3000)
+  } catch (error) {
+    console.error('Error al exportar Excel:', error)
+    mensaje.value = '❌ Error al exportar a Excel'
+    mensajeTipo.value = 'error'
+  }
+}
+
+// Editar trabajador
+const editarTrabajador = (trabajador) => {
+  trabajadorEditando.value = { ...trabajador }
+}
+
+const cerrarEdicion = () => {
+  trabajadorEditando.value = null
+}
+
+const guardarEdicion = async () => {
+  if (!trabajadorEditando.value) return
+  
+  // Validaciones básicas
+  if (!trabajadorEditando.value.nombre || !trabajadorEditando.value.apellido) {
+    mensaje.value = '❌ Nombre y apellido son obligatorios'
+    mensajeTipo.value = 'error'
+    return
+  }
+
+  if (!trabajadorEditando.value.telefono) {
+    mensaje.value = '❌ El teléfono es obligatorio'
+    mensajeTipo.value = 'error'
+    return
+  }
+
+  guardandoEdicion.value = true
+
+  try {
+    const datosActualizar = {
+      nombre: trabajadorEditando.value.nombre,
+      apellido: trabajadorEditando.value.apellido,
+      ci: trabajadorEditando.value.ci,
+      telefono: trabajadorEditando.value.telefono,
+      correo: trabajadorEditando.value.correo,
+      cargo: trabajadorEditando.value.cargo,
+      departamento: trabajadorEditando.value.departamento,
+      estado: trabajadorEditando.value.estado
+    }
+
+    const resultado = await trabajadorService.updateTrabajador(
+      trabajadorEditando.value.id,
+      datosActualizar
+    )
+
+    if (resultado.success) {
+      mensaje.value = '✅ Trabajador actualizado exitosamente'
+      mensajeTipo.value = 'success'
+      cerrarEdicion()
+      cargarTrabajadores()
+    } else {
+      mensaje.value = '❌ Error al actualizar trabajador'
+      mensajeTipo.value = 'error'
+    }
+  } catch (error) {
+    console.error('Error al guardar edición:', error)
+    mensaje.value = `❌ Error: ${error.response?.data?.error || error.message}`
+    mensajeTipo.value = 'error'
+  } finally {
+    guardandoEdicion.value = false
+  }
+}
+
 const eliminarTrabajador = async (id) => {
   if (!confirm('¿Estás seguro de eliminar este trabajador?')) return
 
@@ -355,6 +676,11 @@ const generarCredencial = async (trabajador) => {
 onMounted(() => {
   cargarTrabajadores()
 })
+
+// Resetear a página 1 cuando cambien los filtros
+watch([busqueda, filtroEstado], () => {
+  paginaActual.value = 1
+})
 </script>
 
 <style scoped>
@@ -376,6 +702,12 @@ onMounted(() => {
   margin: 0;
   color: #333;
   font-size: 1.8rem;
+}
+
+.header-acciones {
+  display: flex;
+  gap: 15px;
+  align-items: center;
 }
 
 .btn-copiar-link {
@@ -658,8 +990,146 @@ onMounted(() => {
   transform: scale(1.2);
 }
 
-.btn-accion.credencial {
-  filter: hue-rotate(90deg);
+/* Botón Exportar Excel */
+.btn-exportar-excel {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.btn-exportar-excel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.btn-exportar-excel:active {
+  transform: translateY(0);
+}
+
+/* Modal de Edición */
+.modal-contenido.modal-edicion {
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-contenido.modal-edicion h3 {
+  color: #f59e0b;
+  margin-bottom: 25px;
+  font-size: 1.5rem;
+  text-align: center;
+  border-bottom: 2px solid #fbbf24;
+  padding-bottom: 15px;
+}
+
+.form-edicion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 25px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 15px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.form-group input:disabled,
+.form-group select:disabled {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding-top: 20px;
+  border-top: 2px solid #e5e7eb;
+}
+
+.btn-cancelar {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancelar:hover {
+  background: #4b5563;
+  transform: translateY(-2px);
+}
+
+.btn-cancelar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-guardar {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.btn-guardar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.btn-guardar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .sin-datos {
@@ -882,6 +1352,186 @@ onMounted(() => {
   
   .ultimo-acceso-hint {
     font-size: 0.65rem;
+  }
+}
+
+/* ==================== PAGINACIÓN ==================== */
+.info-paginacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.info-paginacion p {
+  margin: 0;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.select-items-pagina {
+  padding: 8px 12px;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select-items-pagina:hover {
+  border-color: #667eea;
+}
+
+.select-items-pagina:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.paginacion {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 25px 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+.btn-pagina {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-pagina:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-pagina:disabled {
+  background: linear-gradient(135deg, #adb5bd 0%, #868e96 100%);
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.numeros-pagina {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.btn-numero-pagina {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #dee2e6;
+  background: white;
+  color: #495057;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-numero-pagina:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-2px);
+}
+
+.btn-numero-pagina.activo {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+/* Responsive paginación */
+@media (max-width: 768px) {
+  .info-paginacion {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 15px;
+  }
+
+  .info-paginacion p {
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  .select-items-pagina {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .paginacion {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 20px 15px;
+  }
+
+  .btn-pagina {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+  }
+
+  .btn-numero-pagina {
+    width: 35px;
+    height: 35px;
+    font-size: 0.85rem;
+  }
+
+  /* Responsive para modal de edición */
+  .form-edicion-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-contenido.modal-edicion {
+    max-width: 95%;
+    padding: 20px;
+  }
+  
+  .modal-acciones {
+    flex-direction: column;
+  }
+  
+  .btn-cancelar,
+  .btn-guardar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .numeros-pagina {
+    gap: 3px;
+  }
+
+  .btn-numero-pagina {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .btn-pagina {
+    padding: 8px 12px;
+    font-size: 0.8rem;
   }
 }
 </style>

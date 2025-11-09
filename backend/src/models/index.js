@@ -9,6 +9,10 @@ const Staff = require('./Staff')(sequelize);
 const Trabajador = require('./Trabajador')(sequelize);
 const Participante = require('./Participante')(sequelize);
 const Empresa = require('./Empresa')(sequelize);
+const RegistroFeipobol = require('./RegistroFeipobol')(sequelize);
+const PremioFeipobol = require('./PremioFeipobol')(sequelize);
+const GanadorFeipobol = require('./GanadorFeipobol')(sequelize);
+const Configuracion = require('./Configuracion')(sequelize);
 
 // Configurar las asociaciones entre modelos
 
@@ -104,6 +108,34 @@ Empresa.hasMany(Participante, {
 Participante.belongsTo(Empresa, {
   foreignKey: 'empresaId',
   as: 'Empresa'
+});
+
+// **RELACIONES DE EMPRESA Y REGISTROS FEIPOBOL**
+// (Sin relación directa - simplificado)
+
+// **RELACIONES DEL SISTEMA DE SORTEO FEIPOBOL**
+// Un premio puede tener un ganador
+PremioFeipobol.hasOne(GanadorFeipobol, {
+  foreignKey: 'premioId',
+  as: 'Ganador',
+  onDelete: 'RESTRICT'
+});
+
+GanadorFeipobol.belongsTo(PremioFeipobol, {
+  foreignKey: 'premioId',
+  as: 'Premio'
+});
+
+// Un registro puede ser ganador de un premio
+RegistroFeipobol.hasOne(GanadorFeipobol, {
+  foreignKey: 'registroId',
+  as: 'PremioGanado',
+  onDelete: 'RESTRICT'
+});
+
+GanadorFeipobol.belongsTo(RegistroFeipobol, {
+  foreignKey: 'registroId',
+  as: 'Registro'
 });
 
 // Función para sincronizar todos los modelos
@@ -260,6 +292,10 @@ module.exports = {
   Trabajador,
   Participante,
   Empresa,
+  RegistroFeipobol,
+  PremioFeipobol,
+  GanadorFeipobol,
+  Configuracion,
   syncModels,
   seedData
 };

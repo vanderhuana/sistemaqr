@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro FEIPOBOL 2025 - Sorteos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-header img {
+            max-width: 400px;
+            width: 100%;
+            height: auto;
+        }
+
+        .form-title {
+            text-align: center;
+            color: #2ecc71;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .gift-icon {
+            font-size: 40px;
+        }
+
+        .form-subtitle {
+            text-align: center;
+            color: #e74c3c;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group label.required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="date"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #2ecc71;
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.1);
+        }
+
+        input::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(46, 204, 113, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
+            line-height: 1.5;
+        }
+
+        .info-text strong {
+            color: #e74c3c;
+        }
+
+        .image-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+        }
+
+        .promo-image {
+            max-width: 100%;
+            height: auto;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .promo-text {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+        }
+
+        .promo-text h1 {
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .promo-text h2 {
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        /* Modal de éxito */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-content h2 {
+            color: #2ecc71;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .modal-content p {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .qr-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .qr-container img {
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .modal-btn {
+            padding: 12px 30px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .modal-btn:hover {
+            background: #2980b9;
+        }
+
+        .error-message {
+            background: #fee;
+            border-left: 4px solid #e74c3c;
+            padding: 12px;
+            border-radius: 8px;
+            color: #c0392b;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 968px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .image-section {
+                order: -1;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sección del formulario -->
+        <div class="form-section">
+            <div class="logo-header">
+                <svg width="400" height="100" viewBox="0 0 400 100">
+                    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#2ecc71">
+                        FEIPOBOL
+                    </text>
+                    <text x="50%" y="80%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">
+                        EN EL BICENTENARIO DE BOLIVIA
+                    </text>
+                </svg>
+            </div>
+
+            <div class="form-title">
+                <span class="gift-icon">🎁</span>
+                <span>FORMULARIO DE REGISTRO</span>
+                <span class="gift-icon">🎁</span>
+            </div>
+            <div class="form-subtitle">SORTEOS!!!</div>
+
+            <div id="errorMessage" class="error-message"></div>
+
+            <form id="registroForm">
+                <div class="form-group">
+                    <label for="nombre" class="required">Nombre(s)</label>
+                    <input type="text" id="nombre" name="nombre" placeholder="Tu nombre aquí" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="apellido" class="required">Apellido(s)</label>
+                    <input type="text" id="apellido" name="apellido" placeholder="Tu apellido aquí" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ci">Número de CI</label>
+                        <input type="text" id="ci" name="ci" placeholder="Tu número de carnet aquí">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="zona">Zona</label>
+                        <select id="zona" name="zona">
+                            <option value="">Selecciona tu zona...</option>
+                            <option value="Norte">Norte</option>
+                            <option value="Sur">Sur</option>
+                            <option value="Este">Este</option>
+                            <option value="Oeste">Oeste</option>
+                            <option value="Centro">Centro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="telefono" class="required">Número de Celular</label>
+                        <input type="tel" id="telefono" name="telefono" placeholder="########" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="correo">Correo Electrónico (opcional)</label>
+                        <input type="email" id="correo" name="correo" placeholder="tucorreo@email.com">
+                    </div>
+                </div>
+
+
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span>ENVIAR DATOS</span>
+                    <span style="font-size: 24px;">😊</span>
+                </button>
+
+                <div class="info-text">
+                    • El llenado de todos los datos con <strong>*</strong> es obligatorio<br>
+                    • Si su número de CI tiene una extensión debe ponerla: 1234567-1H
+                </div>
+            </form>
+        </div>
+
+        <!-- Sección de imagen promocional -->
+        <div class="image-section">
+            <svg class="promo-image" width="400" height="400" viewBox="0 0 400 400">
+                <!-- Hongo ilustración simplificada -->
+                <defs>
+                    <linearGradient id="mushroomTop" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#ff8e53;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#ffa07a;stop-opacity:1" />
+                    </linearGradient>
+                    <linearGradient id="mushroomStem" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#f9ca24;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#f0932b;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                
+                <!-- Stem -->
+                <path d="M 180 220 L 160 350 L 240 350 L 220 220 Z" fill="url(#mushroomStem)"/>
+                
+                <!-- Cap -->
+                <ellipse cx="200" cy="200" rx="150" ry="100" fill="url(#mushroomTop)"/>
+                
+                <!-- Dots -->
+                <circle cx="150" cy="180" r="15" fill="#fff" opacity="0.7"/>
+                <circle cx="220" cy="160" r="20" fill="#fff" opacity="0.7"/>
+                <circle cx="180" cy="220" r="12" fill="#fff" opacity="0.7"/>
+                
+                <!-- Base accent -->
+                <ellipse cx="200" cy="350" rx="60" ry="20" fill="#16a085" opacity="0.6"/>
+            </svg>
+
+            <div class="promo-text">
+                <h1>FEIPOBOL 2025</h1>
+                <h2>¡PARTICIPA Y GÁNATE PREMIOS!!!</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de éxito -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <h2>🎉 ¡Registro Exitoso!</h2>
+            <p>Gracias por registrarte en FEIPOBOL 2025</p>
+            <p><strong id="nombreCompleto"></strong></p>
+            <p style="font-size: 24px; color: #2ecc71; font-weight: bold; margin: 15px 0;">
+                Número de Sorteo: <span id="numeroSorteo"></span>
+            </p>
+            
+            <div class="qr-container">
+                <p style="margin-bottom: 10px; font-weight: bold;">Tu código QR:</p>
+                <img id="qrImage" src="" alt="QR Code">
+                <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                    ¡Guarda este QR! Es tu boleto para participar en los sorteos
+                </p>
+                <p style="font-size: 12px; color: #999; margin-top: 5px;">
+                    Fecha de registro: <span id="fechaRegistro"></span>
+                </p>
+            </div>
+
+            <button class="modal-btn" onclick="descargarQR()">📥 Descargar QR</button>
+            <button class="modal-btn" onclick="imprimirQR()">🖨️ Imprimir</button>
+            <button class="modal-btn" onclick="cerrarModal()">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de la API - usar rutas relativas para que funcione con el proxy de Vite
+        // VERSIÓN: 2025-11-05-14:30 - Forzar actualización de caché
+        const API_URL = '/api/public';
+        
+        console.log('🔧 Usando API_URL:', API_URL);
+        console.log('🌐 Hostname:', window.location.hostname);
+        console.log('📍 URL completa:', window.location.href);
+
+        // Manejar el envío del formulario
+        document.getElementById('registroForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Deshabilitar botón
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading"></span> <span>Registrando...</span>';
+            errorMessage.style.display = 'none';
+
+            // Obtener datos del formulario
+            const formData = {
+                nombre: document.getElementById('nombre').value.trim(),
+                apellido: document.getElementById('apellido').value.trim(),
+                ci: document.getElementById('ci').value.trim() || null,
+                zona: document.getElementById('zona').value || null,
+                telefono: document.getElementById('telefono').value.trim(),
+                correo: document.getElementById('correo').value.trim() || null
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/registro`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Mostrar modal de éxito
+                    document.getElementById('nombreCompleto').textContent = data.data.nombre;
+                    document.getElementById('numeroSorteo').textContent = data.data.numeroSorteo;
+                    document.getElementById('qrImage').src = data.data.qrCode;
+                    document.getElementById('fechaRegistro').textContent = new Date(data.data.fechaRegistro).toLocaleString('es-BO');
+                    document.getElementById('successModal').style.display = 'flex';
+                    
+                    // Limpiar formulario
+                    document.getElementById('registroForm').reset();
+                } else {
+                    // Mostrar error
+                    errorMessage.textContent = data.message;
+                    errorMessage.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = 'Error de conexión. Por favor, verifica tu internet e intenta nuevamente.';
+                errorMessage.style.display = 'block';
+            } finally {
+                // Rehabilitar botón
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<span>ENVIAR DATOS</span> <span style="font-size: 24px;">😊</span>';
+            }
+        });
+
+        function cerrarModal() {
+            document.getElementById('successModal').style.display = 'none';
+        }
+
+        function descargarQR() {
+            const qrImage = document.getElementById('qrImage');
+            const numeroSorteo = document.getElementById('numeroSorteo').textContent;
+            const link = document.createElement('a');
+            link.download = `feipobol-2025-sorteo-${numeroSorteo}.png`;
+            link.href = qrImage.src;
+            link.click();
+        }
+
+        function imprimirQR() {
+            const nombre = document.getElementById('nombreCompleto').textContent;
+            const numeroSorteo = document.getElementById('numeroSorteo').textContent;
+            const qrImage = document.getElementById('qrImage').src;
+            
+            const ventanaImpresion = window.open('', '_blank');
+            ventanaImpresion.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>FEIPOBOL 2025 - Boleto ${numeroSorteo}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            text-align: center;
+                            padding: 20px;
+                        }
+                        h1 { color: #2ecc71; }
+                        h2 { color: #333; }
+                        img { max-width: 400px; margin: 20px 0; }
+                        .numero { font-size: 32px; color: #2ecc71; font-weight: bold; }
+                    </style>
+                </head>
+                <body>
+                    <h1>🎁 FEIPOBOL 2025 🎁</h1>
+                    <h2>${nombre}</h2>
+                    <p class="numero">Número de Sorteo: ${numeroSorteo}</p>
+                    <img src="${qrImage}" alt="QR Code">
+                    <p><strong>¡Guarda este boleto para participar en los sorteos!</strong></p>
+                    <p style="font-size: 12px; color: #666;">Fecha: ${new Date().toLocaleDateString('es-BO')}</p>
+                </body>
+                </html>
+            `);
+            ventanaImpresion.document.close();
+            ventanaImpresion.print();
+        }
+
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('successModal').addEventListener('click', (e) => {
+            if (e.target.id === 'successModal') {
+                cerrarModal();
+            }
+        });
+    </script>
+</body>
+</html>

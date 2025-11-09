@@ -212,10 +212,15 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
         ctx.drawImage(fondoImg, 0, 0, 1080, 1920)
         
         // El QR ya está como Data URL, no necesita carga adicional
+        // Detectar si es dispositivo móvil para ajustar calidad
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        const scale = isMobile ? 1.5 : 2  // Menor escala en móviles
+        const quality = isMobile ? 0.85 : 0.92  // Menor calidad en móviles (aún buena)
+        
         // Esperar un momento para que el DOM se actualice
         setTimeout(() => {
           html2canvas(container.querySelector('#credencial-pdf'), {
-            scale: 2,
+            scale: scale,
             useCORS: true,
             allowTaint: true,
             backgroundColor: null
@@ -223,8 +228,8 @@ export async function generarCredencialPDF(participante, datosFormulario, empres
             // Combinar fondo + contenido
             ctx.drawImage(contentCanvas, 0, 0, 1080, 1920)
             
-            // Convertir canvas a imagen JPEG con alta calidad
-            const imgData = canvas.toDataURL('image/jpeg', 0.95)
+            // Convertir canvas a imagen JPEG con calidad ajustada
+            const imgData = canvas.toDataURL('image/jpeg', quality)
             
             // Crear enlace de descarga para JPEG
             const link = document.createElement('a')

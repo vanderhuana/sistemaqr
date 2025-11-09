@@ -8,7 +8,9 @@ const {
   exportBackup,
   importBackup,
   listBackups,
-  deleteBackup
+  deleteBackup,
+  downloadBackup,
+  cleanDatabase
 } = require('../controllers/backupController');
 
 // Debug: verificar que todas las funciones estén definidas
@@ -19,6 +21,8 @@ console.log('exportBackup:', typeof exportBackup);
 console.log('importBackup:', typeof importBackup);
 console.log('listBackups:', typeof listBackups);
 console.log('deleteBackup:', typeof deleteBackup);
+console.log('downloadBackup:', typeof downloadBackup);
+console.log('cleanDatabase:', typeof cleanDatabase);
 
 // Configurar multer para subir archivos
 const storage = multer.diskStorage({
@@ -68,10 +72,24 @@ router.post('/import', authenticateToken, requireAdmin, upload.single('backup'),
 router.get('/list', authenticateToken, requireAdmin, listBackups);
 
 /**
+ * @route   GET /api/backup/download/:filename
+ * @desc    Descargar un backup específico
+ * @access  Private (Admin only)
+ */
+router.get('/download/:filename', authenticateToken, requireAdmin, downloadBackup);
+
+/**
  * @route   DELETE /api/backup/:filename
  * @desc    Eliminar un backup específico
  * @access  Private (Admin only)
  */
 router.delete('/:filename', authenticateToken, requireAdmin, deleteBackup);
+
+/**
+ * @route   POST /api/backup/clean
+ * @desc    Limpiar todas las tablas de la base de datos
+ * @access  Private (Admin only)
+ */
+router.post('/clean', authenticateToken, requireAdmin, cleanDatabase);
 
 module.exports = router;

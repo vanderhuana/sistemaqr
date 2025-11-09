@@ -16,6 +16,96 @@ const {
 // GET /api/events - Listar eventos públicos (solo activos)
 router.get('/', optionalAuth, eventController.getEvents);
 
+// **RUTAS PROTEGIDAS** (requieren autenticación)
+
+// **RUTAS ESPECÍFICAS** (deben ir ANTES de las rutas con parámetros :id)
+
+// GET /api/events/admin/dashboard - Dashboard de eventos (solo admin)
+router.get('/admin/dashboard', 
+  authenticateToken, 
+  requireAdmin, 
+  eventController.getEventsDashboard
+);
+
+// GET /api/events/validations - Obtener todas las validaciones de QR (admin o vendedor)
+router.get('/validations',
+  authenticateToken,
+  requireVendedor, // Admin o Vendedor pueden ver validaciones
+  async (req, res) => {
+    try {
+      console.log('📊 Iniciando consulta de validaciones...');
+      
+      // Importar modelos
+      const models = require('../models');
+      const { ValidationLog, Ticket, User } = models;
+      
+      console.log('✅ Modelos importados correctamente');
+      console.log('📋 ValidationLog existe:', !!ValidationLog);
+      console.log('📋 Ticket existe:', !!Ticket);
+      console.log('� User existe:', !!User);
+      
+      // Primero intentar obtener sin includes
+      const validationsCount = await ValidationLog.count();
+      console.log(`�📊 Total de validaciones en BD: ${validationsCount}`);
+      
+      // Si no hay validaciones, retornar array vacío
+      if (validationsCount === 0) {
+        console.log('ℹ️ No hay validaciones registradas');
+        return res.json({
+          success: true,
+          validations: [],
+          total: 0,
+          message: 'No hay validaciones registradas aún'
+        });
+      }
+      
+      // Intentar obtener con includes
+      console.log('🔍 Obteniendo validaciones con relaciones...');
+      const validations = await ValidationLog.findAll({
+        include: [
+          {
+            model: Ticket,
+            as: 'Ticket',
+            attributes: ['id', 'numero', 'tipo'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'Validator',
+            attributes: ['id', 'nombre', 'username'],
+            required: false
+          }
+        ],
+        order: [['validatedAt', 'DESC']],
+        limit: 500
+      });
+
+      console.log(`✅ Validaciones encontradas: ${validations.length}`);
+
+      res.json({
+        success: true,
+        validations: validations || [],
+        total: validations.length
+      });
+    } catch (error) {
+      console.error('❌ Error obteniendo validaciones:', error);
+      console.error('❌ Tipo de error:', error.name);
+      console.error('❌ Mensaje:', error.message);
+      console.error('❌ Stack:', error.stack);
+      
+      res.status(500).json({
+        success: false,
+        error: 'Error al obtener validaciones',
+        message: error.message,
+        errorType: error.name,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  }
+);
+
+// **RUTAS CON PARÁMETROS** (deben ir DESPUÉS de rutas específicas)
+
 // GET /api/events/:id - Obtener evento específico (solo activos para no-admin)
 router.get('/:id', optionalAuth, eventController.getEventById);
 
@@ -55,13 +145,6 @@ router.delete('/:id',
   authenticateToken, 
   requireAdmin, 
   eventController.deleteEvent
-);
-
-// GET /api/events/admin/dashboard - Dashboard de eventos (solo admin)
-router.get('/admin/dashboard', 
-  authenticateToken, 
-  requireAdmin, 
-  eventController.getEventsDashboard
 );
 
 // **UTILIDADES PARA CONFIGURACIÓN DE PRECIOS**
